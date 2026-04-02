@@ -1,7 +1,5 @@
 # Undertow
 
-Live: https://super-futures.github.io/undertow/
-
 Undertow tracks three registers simultaneously at the world's major 
 shipping chokepoints — Hormuz, Suez, Panama — and surfaces the 
 relationship between them.
@@ -10,50 +8,53 @@ relationship between them.
 **Market** — what price signals say. Futures, freight rates, 
 war-risk insurance.  
 **Felt** — what people collectively register. News volume, 
-narrative spread, and public awareness.
+narrative spread.
 
 The primary signal is the gap between physical reality and collective 
-felt experience — both its magnitude and its direction (whether awareness 
-is lagging or running ahead). When that gap becomes significant, the 
-system makes it visible.
-
-The system is designed to surface moments of misalignment — when decisions 
-are being made under conditions that are not yet widely understood.
-
-When a gap becomes significant, the system provides a two-line reading: 
-a structural classification of the configuration, followed by a brief 
-indication of how that condition typically becomes visible in everyday 
-experience (e.g. through prices, delays, or availability).
+felt experience. When that gap is significant, the system shows its 
+configuration — whether physical reality is running ahead of collective 
+awareness or behind it, and whether the gap is widening or closing — 
+alongside the channel through which it is most likely to become visible 
+in daily life.
 
 ## What it shows
 
 At any given moment, the three registers at each chokepoint may be 
 aligned, diverging, or moving in opposite directions. The system encodes 
 both the magnitude of that divergence and its rate of change — a small 
-gap widening quickly is an earlier signal than a large gap that has been 
-stable over time.
+gap widening fast is an earlier signal than a large gap that has been 
+stable for months.
 
-These conditions are also expressed in a minimal textual form to support 
-rapid interpretation without requiring prior knowledge of the system.
+Ghost traces show where each register was in recent intervals, making 
+trajectory legible without charts. The gap line between physical and 
+felt experience weights and animates in proportion to divergence speed.
 
 ## Current state
 
-Hormuz is currently in a near-closure state following recent regional 
-escalation. Physical flow is significantly reduced, market signals are 
-elevated, and collective sentiment is rising but still lagging the 
-physical reality. The gap is wide and the system shows it.
+Hormuz is near-total closure following the 2026 US-Israel strikes on 
+Iran. Physical flow is at approximately 6% of normal. Market signal is 
+extreme. Collective sentiment is rising but still lagging the physical 
+reality. The gap is wide and widening.
 
-Suez is experiencing secondary pressure as vessels reroute, creating 
-delays that propagate through shipping and retail systems. Market and 
-sentiment signals are elevated but uneven.
+Suez is elevated — receiving rerouting pressure from Hormuz and residual 
+Houthi risk on the Red Sea approach. Panama carries ongoing 
+drought-related draught restrictions with very low public awareness.
 
-Panama represents a slower constraint. Environmental limits on capacity 
-have persisted over time, with markets adjusted but public awareness 
-remaining low. The disruption is gradual and less visible.
+## Signal layer
+
+When a gap is significant, the system surfaces a two-line entry:
+
+- **Line 1** — configuration: what kind of gap this is and whether it 
+is widening or closing
+- **Line 2** — transmission: where this would become visible in 
+everyday life — fuel prices, delivery times, food costs
+
+No historical citations. No forecasts. The signal describes current 
+structure and its likely transmission into lived experience.
 
 ## Technical
 
-Single HTML file. Canvas rendering. Live data via Yahoo Finance 
-(Brent crude) and GDELT (news sentiment). Falls back to a calibrated 
-model when data is unavailable. No server required — deploy anywhere 
-that serves static files.
+Single HTML file. Canvas 2D rendering. Live data via Yahoo Finance 
+(Brent crude) and GDELT (news sentiment), polled every 10 minutes. 
+Falls back to a calibrated model when data is unavailable. No server 
+required — deploy anywhere that serves static files.
