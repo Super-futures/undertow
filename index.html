@@ -141,33 +141,37 @@ html, body {
 #schematic { width: 100%; display: block; }
 #overlay   { position: absolute; top: 0; left: 0; pointer-events: none; }
 
-/* ── Resonance ── */
+/* ── Signal overlay ── */
 #resonance {
   position: absolute;
   bottom: 0; left: 0; right: 0;
-  padding: 20px 22px 16px;
-  background: linear-gradient(transparent, rgba(237,234,222,0.97) 35%);
+  padding: 16px 22px 14px;
+  background: linear-gradient(transparent, rgba(237,234,222,0.97) 32%);
   pointer-events: none;
   opacity: 0;
-  transition: opacity 1s ease;
+  transition: opacity 0.6s ease;
 }
 #resonance.visible { opacity: 1; }
 #resonance-node {
   font-family: var(--mono);
   font-size: 7.5px;
-  color: var(--resonance);
+  color: var(--ink3);
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  margin-bottom: 5px;
-  opacity: 0.8;
+  margin-bottom: 4px;
 }
 #resonance-text {
-  font-family: var(--serif);
-  font-style: italic;
-  font-size: 12px;
+  font-family: var(--mono);
+  font-size: 10px;
   color: var(--ink2);
-  line-height: 1.55;
-  max-width: 580px;
+  line-height: 1.7;
+  white-space: pre-line;
+  max-width: 600px;
+}
+/* First line of signal text — configuration, darker */
+#resonance-text::first-line {
+  color: var(--ink);
+  font-size: 10px;
 }
 
 /* ── Panels ── */
@@ -182,19 +186,21 @@ html, body {
 .panel {
   background: white;
   border: 0.5px solid var(--border);
+  border-left: 3px solid transparent;
   border-radius: 6px;
   padding: 14px 16px;
   position: relative;
   overflow: hidden;
   cursor: pointer;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.25s, border-left-color 0.25s, box-shadow 0.25s;
 }
 .panel:hover { border-color: var(--border2); }
 .panel.panel-focused {
-  border-color: var(--border2);
-  box-shadow: 0 2px 18px rgba(28,26,22,0.07);
+  box-shadow: 0 2px 20px rgba(28,26,22,0.08);
 }
+.panel.panel-focused .panel-name { color: var(--ink); }
 #overlay { cursor: pointer; }
+
 .panel-diverge-bar {
   position: absolute;
   top: 0; left: 0; right: 0;
@@ -202,15 +208,18 @@ html, body {
   background: var(--diverge);
   transform: scaleX(0);
   transform-origin: left;
-  transition: transform 1.2s ease;
   opacity: 0;
   transition: transform 1.2s ease, opacity 0.4s ease;
 }
+
+/* Panel name — dimmed by default, lifts on focus */
 .panel-name {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: -0.01em;
   margin-bottom: 2px;
+  color: var(--ink2);
+  transition: color 0.25s;
 }
 .panel-region {
   font-family: var(--mono);
@@ -218,17 +227,40 @@ html, body {
   color: var(--ink3);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-bottom: 11px;
+  margin-bottom: 10px;
 }
-.panel-gap-statement {
-  font-style: italic;
-  font-size: 11px;
-  color: var(--ink2);
-  line-height: 1.45;
-  margin-bottom: 11px;
-  min-height: 34px;
+
+/* 1 — CLASSIFICATION: leads the reading */
+.panel-gap-line {
+  margin-bottom: 10px;
+  padding-bottom: 9px;
+  border-bottom: 0.5px solid var(--border);
+}
+.gap-state {
+  font-family: var(--mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+  line-height: 1.3;
   transition: color 0.6s;
 }
+.gap-subtext {
+  font-family: var(--mono);
+  font-size: 7px;
+  color: var(--ink3);
+  margin-top: 3px;
+  line-height: 1.55;
+  min-height: 11px;
+}
+/* Rate micro-label — secondary within classification */
+.gap-state .rate {
+  text-transform: none;
+  letter-spacing: 0.04em;
+  opacity: 0.65;
+}
+
+/* 2 — DATA: register bars */
 .panel-registers {
   display: flex;
   flex-direction: column;
@@ -268,31 +300,16 @@ html, body {
   text-align: right;
   flex-shrink: 0;
 }
-.panel-gap-line {
-  border-top: 0.5px solid var(--border);
-  padding-top: 8px;
-  margin-top: 2px;
-}
-.gap-state {
-  font-family: var(--mono);
-  font-size: 7.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  transition: color 0.6s;
-}
-/* Rate micro-label appears after · in gap-state — de-emphasised */
-.gap-state .rate {
-  text-transform: none;
-  letter-spacing: 0.04em;
-  opacity: 0.7;
-}
-.gap-subtext {
-  font-family: var(--mono);
-  font-size: 7px;
+
+/* 3 — INTERPRETATION: annotation, subordinate */
+.panel-gap-statement {
+  font-style: italic;
+  font-size: 10px;
   color: var(--ink3);
-  margin-top: 3px;
-  line-height: 1.55;
-  min-height: 11px;
+  line-height: 1.5;
+  padding-top: 8px;
+  border-top: 0.5px solid var(--border);
+  transition: color 0.6s;
 }
 
 /* ── Footer ── */
@@ -459,7 +476,10 @@ html, body {
     <div class="panel-diverge-bar" id="dbar-hormuz"></div>
     <div class="panel-name">Strait of Hormuz</div>
     <div class="panel-region">Persian Gulf · Oil &amp; LNG · 20% of global oil supply</div>
-    <div class="panel-gap-statement" id="stmt-hormuz"></div>
+    <div class="panel-gap-line">
+      <div class="gap-state" id="gs-hormuz"></div>
+      <div class="gap-subtext" id="gsub-hormuz"></div>
+    </div>
     <div class="panel-registers">
       <div class="reg-row">
         <span class="reg-label" style="color:var(--physical)">Flow</span>
@@ -477,17 +497,17 @@ html, body {
         <span class="reg-val" id="rv-hormuz-s"></span>
       </div>
     </div>
-    <div class="panel-gap-line">
-      <div class="gap-state" id="gs-hormuz"></div>
-      <div class="gap-subtext" id="gsub-hormuz"></div>
-    </div>
+    <div class="panel-gap-statement" id="stmt-hormuz"></div>
   </div>
 
   <div class="panel" id="panel-suez">
     <div class="panel-diverge-bar" id="dbar-suez"></div>
     <div class="panel-name">Suez Canal</div>
     <div class="panel-region">Mediterranean · Red Sea · Container &amp; tanker traffic</div>
-    <div class="panel-gap-statement" id="stmt-suez"></div>
+    <div class="panel-gap-line">
+      <div class="gap-state" id="gs-suez"></div>
+      <div class="gap-subtext" id="gsub-suez"></div>
+    </div>
     <div class="panel-registers">
       <div class="reg-row">
         <span class="reg-label" style="color:var(--physical)">Flow</span>
@@ -505,17 +525,17 @@ html, body {
         <span class="reg-val" id="rv-suez-s"></span>
       </div>
     </div>
-    <div class="panel-gap-line">
-      <div class="gap-state" id="gs-suez"></div>
-      <div class="gap-subtext" id="gsub-suez"></div>
-    </div>
+    <div class="panel-gap-statement" id="stmt-suez"></div>
   </div>
 
   <div class="panel" id="panel-panama">
     <div class="panel-diverge-bar" id="dbar-panama"></div>
     <div class="panel-name">Panama Canal</div>
     <div class="panel-region">Caribbean · Pacific · Grain, bulk &amp; container</div>
-    <div class="panel-gap-statement" id="stmt-panama"></div>
+    <div class="panel-gap-line">
+      <div class="gap-state" id="gs-panama"></div>
+      <div class="gap-subtext" id="gsub-panama"></div>
+    </div>
     <div class="panel-registers">
       <div class="reg-row">
         <span class="reg-label" style="color:var(--physical)">Flow</span>
@@ -533,11 +553,7 @@ html, body {
         <span class="reg-val" id="rv-panama-s"></span>
       </div>
     </div>
-    <div class="panel-gap-line">
-      <div class="gap-state" id="gs-panama"></div>
-      <div class="gap-subtext" id="gsub-panama"></div>
-    </div>
-  </div>
+    <div class="panel-gap-statement" id="stmt-panama"></div>
 
 </div>
 
@@ -654,49 +670,50 @@ function getRate(id) {
   return { label, direction, rate };
 }
 
-// ── Historical resonance ───────────────────────────────────
-// Each entry triggers at minGap (|flow - sentiment| magnitude).
-// Entries verified for factual accuracy April 2026.
-const RESONANCE = {
-  hormuz: [
-    {
-      minGap: 0.48,
-      text: "In 1979, Iran's revolution disrupted Hormuz physically for weeks before collective sentiment caught up. Fear then outlasted the physical constraint by months — hoarding behaviour prolonged the supply shock well past the original disruption.",
-    },
-    {
-      minGap: 0.32,
-      text: "In 2019, IRGC attacks on tankers caused war-risk insurance premiums to spike sharply before public awareness followed. Sentiment reached consumers six to eight weeks later, when fuel prices moved at the pump.",
-    },
-    {
-      minGap: 0.18,
-      text: "During the 2011–12 US-Iran nuclear standoff, market signals elevated for nearly three months ahead of public sentiment. Physical flow through the strait was never significantly interrupted — the gap closed when tensions de-escalated.",
-    },
-  ],
-  suez: [
-    {
-      minGap: 0.42,
-      text: "The Ever Given grounding in March 2021 produced an extreme short-term market spike. Public sentiment barely registered — the physical blockage resolved in six days, though freight rate effects persisted for months.",
-    },
-    {
-      minGap: 0.26,
-      text: "Houthi attacks on Red Sea shipping from late 2023 rerouted significant container traffic around the Cape of Good Hope, adding 10–14 days per voyage. Market freight rates adjusted within weeks; most consumers only noticed delivery delays several months later.",
-    },
-    {
-      minGap: 0.14,
-      text: "The 1956 Suez Crisis produced unusually rapid convergence between physical disruption and public sentiment — driven by Cold War news intensity and direct petrol rationing in the UK, France and Israel within weeks of closure.",
-    },
-  ],
-  panama: [
-    {
-      minGap: 0.38,
-      text: "The 2023 drought imposed the most severe vessel-draught restrictions in canal history. Freight rates on bulk routes adjusted within weeks. Public sentiment did not materially move — grain and dry-bulk shipping has no direct consumer touchpoint.",
-    },
-    {
-      minGap: 0.18,
-      text: "Panama's water-level constraints have tightened across three consecutive dry seasons since 2021. Physical constraint is real and accumulating. Collective awareness has not tracked the ratchet — the disruption has no single visible event to anchor it.",
-    },
-  ],
+// ── Signal entries — configuration + transmission channel ──
+// Replaces historical resonance. Keyed by node → configuration.
+// Configuration derived from: gap direction (physical/sentiment ahead)
+// + rate (widening/closing/stable). Four core states + aligned.
+// Line 1 = configuration (structural, consistent)
+// Line 2 = lived-experience anchor (where would I notice this?)
+const SIGNAL = {
+  hormuz: {
+    phys_widening:  { line1: 'Physical disruption ahead of awareness — widening',  line2: 'Not yet showing in fuel prices; likely to appear there first' },
+    phys_closing:   { line1: 'Physical disruption ahead of awareness — closing',   line2: 'Beginning to show in fuel prices; costs may stay elevated as conditions ease' },
+    sent_widening:  { line1: 'Concern ahead of disruption — widening',             line2: 'Concern rising ahead of disruption; visible as fuel price anxiety before prices move' },
+    sent_closing:   { line1: 'Concern ahead of disruption — closing',              line2: 'Concern easing; fuel prices more stable than current mood suggests' },
+    aligned:        { line1: 'Physical conditions and public awareness broadly in step', line2: '' },
+  },
+  suez: {
+    phys_widening:  { line1: 'Physical constraint ahead of awareness — widening',  line2: 'Shows up first as shipping delays and slower deliveries; retail availability follows' },
+    phys_closing:   { line1: 'Physical constraint ahead of awareness — closing',   line2: 'Delays already in transit; disruptions continue even after routes reopen' },
+    sent_widening:  { line1: 'Concern ahead of disruption — widening',             line2: 'Concern spreading before delays are widely felt; appears first in delivery times' },
+    sent_closing:   { line1: 'Concern ahead of disruption — closing',              line2: 'Concern receding; deliveries more reliable than current mood suggests' },
+    aligned:        { line1: 'Physical conditions and public awareness broadly in step', line2: '' },
+  },
+  panama: {
+    phys_widening:  { line1: 'Physical constraint ahead of awareness — widening',  line2: 'Not directly visible; emerges gradually through food and commodity prices' },
+    phys_closing:   { line1: 'Physical constraint ahead of awareness — closing',   line2: 'Constraint easing; price effects continue even as conditions improve' },
+    sent_widening:  { line1: 'Concern ahead of disruption — widening',             line2: 'Higher-than-usual attention despite limited direct consumer visibility' },
+    sent_closing:   { line1: 'Concern ahead of disruption — closing',              line2: 'Concern easing; commodity prices may remain affected' },
+    aligned:        { line1: 'Physical conditions and public awareness broadly in step', line2: '' },
+  },
 };
+
+// Derive signal key from gap direction + rate
+function getSignalKey(id) {
+  const { psGap, magnitude } = getGap(id);
+  const { direction } = getRate(id);
+  if (magnitude < 0.10) return 'aligned';
+  const dir   = psGap < 0 ? 'phys' : 'sent';
+  const trend = direction === 1 ? 'widening' : direction === -1 ? 'closing' : 'widening';
+  return `${dir}_${trend}`;
+}
+
+function getSignalEntry(id) {
+  const key = getSignalKey(id);
+  return SIGNAL[id]?.[key] || SIGNAL[id]?.aligned;
+}
 
 // ── Gap analysis ───────────────────────────────────────────
 function getGap(id) {
@@ -746,11 +763,6 @@ function gapStatement(id) {
     text: "Registers are converging.",
     color: 'var(--ink3)', state: "Converging", sub: "",
   };
-}
-
-function getResonanceEntry(id) {
-  const { magnitude } = getGap(id);
-  return (RESONANCE[id] || []).find(e => magnitude >= e.minGap) || null;
 }
 
 // ── Canvas ─────────────────────────────────────────────────
@@ -810,7 +822,7 @@ function tick(ts) {
 
   if (now - lastPanelUpdate > PANEL_UPDATE_INTERVAL) {
     updatePanels();
-    updateResonance(now);
+    updateSignal();
     lastPanelUpdate = now;
   }
   // Sample ghost states on real-time interval
@@ -1087,15 +1099,27 @@ function drawNode(id) {
   }
 
   // ── Focus ring ─────────────────────────────────────────
+  // Solid ring — positive focus signal, not just dimming of others.
+  // Shares colour with the panel left border via gap-state colour.
   if (focusedNode === id) {
-    const fR = Math.max(physR * 2.4, mR * 2.2, sR * 3.8) + 8;
+    const fR = Math.max(physR * 2.4, mR * 2.2, sR * 3.8) + 10;
+    const stmt = gapStatement(id);
+    // Parse colour — handle CSS var references
+    let ringColour = 'rgba(28,26,22,0.25)';
+    if (stmt.color === 'var(--diverge)')    ringColour = 'rgba(122,26,26,0.35)';
+    else if (stmt.color === 'var(--resonance)') ringColour = 'rgba(74,58,26,0.3)';
+    else if (stmt.color === 'var(--ink2)')  ringColour = 'rgba(90,87,80,0.25)';
     ctx.beginPath();
     ctx.arc(x, y, fR, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(28,26,22,0.16)`;
-    ctx.lineWidth = 1;
-    ctx.setLineDash([3, 5]);
-    ctx.stroke();
+    ctx.strokeStyle = ringColour;
+    ctx.lineWidth = 1.5;
     ctx.setLineDash([]);
+    ctx.stroke();
+    // Small solid dot at node centre — anchors the focus
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = ringColour;
+    ctx.fill();
   }
 }
 
@@ -1191,49 +1215,59 @@ function setBar(id, reg, val, pct) {
   if (label) label.textContent = pct + '%';
 }
 
-// ── Resonance system ───────────────────────────────────────
-let resonanceActive  = false;
-let resonanceTimer   = null;
-let lastResNodeId    = null;
-let lastResEntry     = null;
-// FIX: delay first resonance — give viewer 15s to orient
-let resonanceEligibleAfter = 0;
+// ── Signal display system ──────────────────────────────────
+// Replaces historical resonance. Always visible when gap > threshold.
+// No timer, no fade — persists as long as configuration holds.
+// Updates continuously as gap direction and rate change.
+let lastSignalKey = { hormuz: null, suez: null, panama: null };
+// Minimum gap to show signal entry
+const SIGNAL_THRESHOLD = 0.10;
 
-function updateResonance(ts) {
-  if (resonanceEligibleAfter === 0) resonanceEligibleAfter = ts + 15000;
-  if (ts < resonanceEligibleAfter) return;
-
-  // Find node with largest gap
+function updateSignal() {
+  // Find node with largest gap — show its signal in the field overlay
   let maxMag = 0, maxId = null;
   for (const id of Object.keys(NODES)) {
     const { magnitude } = getGap(id);
     if (magnitude > maxMag) { maxMag = magnitude; maxId = id; }
   }
-  if (!maxId || maxMag < 0.18) { if (resonanceActive) hideResonance(); return; }
 
-  const entry = getResonanceEntry(maxId);
-  if (!entry) { if (resonanceActive) hideResonance(); return; }
+  const resEl    = document.getElementById('resonance');
+  const nodeEl   = document.getElementById('resonance-node');
+  const textEl   = document.getElementById('resonance-text');
 
-  // FIX: key on the entry itself, not just magnitude delta
-  if (entry === lastResEntry && resonanceActive) return;
+  if (!maxId || maxMag < SIGNAL_THRESHOLD) {
+    resEl.classList.remove('visible');
+    return;
+  }
 
-  lastResNodeId = maxId;
-  lastResEntry  = entry;
-  showResonance(maxId, entry);
+  const entry = getSignalEntry(maxId);
+  if (!entry) { resEl.classList.remove('visible'); return; }
+
+  const key = getSignalKey(maxId);
+  // Only update DOM if something changed
+  if (key !== lastSignalKey[maxId] || !resEl.classList.contains('visible')) {
+    lastSignalKey[maxId] = key;
+    nodeEl.textContent = NODES[maxId].label;
+    textEl.textContent = entry.line2
+      ? `${entry.line1}\n${entry.line2}`
+      : entry.line1;
+    resEl.classList.add('visible');
+  }
 }
 
-function showResonance(id, entry) {
-  resonanceActive = true;
-  document.getElementById('resonance-node').textContent =
-    `${NODES[id].label} — historical parallel`;
-  document.getElementById('resonance-text').textContent = entry.text;
+// Retained for click-triggered immediate update
+function showResonance(id) {
+  const entry = getSignalEntry(id);
+  if (!entry) return;
+  document.getElementById('resonance-node').textContent = NODES[id].label;
+  document.getElementById('resonance-text').textContent = entry.line2
+    ? `${entry.line1}\n${entry.line2}`
+    : entry.line1;
   document.getElementById('resonance').classList.add('visible');
-  if (resonanceTimer) clearTimeout(resonanceTimer);
-  resonanceTimer = setTimeout(hideResonance, 16000);
+  lastSignalKey[id] = getSignalKey(id);
 }
 
 function hideResonance() {
-  resonanceActive = false;
   document.getElementById('resonance').classList.remove('visible');
 }
 
@@ -1370,16 +1404,31 @@ let focusedNode = null;
 
 function setFocus(id) {
   focusedNode = focusedNode === id ? null : id;
-  // Update panel active states
+
   for (const nid of Object.keys(NODES)) {
     const panel = document.getElementById(`panel-${nid}`);
-    if (panel) panel.classList.toggle('panel-focused', nid === focusedNode);
+    if (!panel) continue;
+    const focused = nid === focusedNode;
+    panel.classList.toggle('panel-focused', focused);
+    // Left border colour is the binding property:
+    // focused panel shares its gap-state colour with the canvas ring.
+    // When unfocused, border is transparent (invisible).
+    if (focused) {
+      const stmt = gapStatement(nid);
+      // Resolve CSS variable to a real colour for border
+      const colour = stmt.color.startsWith('var(')
+        ? getComputedStyle(document.documentElement)
+            .getPropertyValue(stmt.color.replace('var(','').replace(')','').trim()).trim()
+        : stmt.color;
+      panel.style.borderLeftColor = colour || 'var(--border2)';
+      panel.style.borderLeftWidth = '3px';
+    } else {
+      panel.style.borderLeftColor = 'transparent';
+    }
   }
-  // Trigger resonance immediately for focused node if gap is significant
-  if (focusedNode) {
-    const entry = getResonanceEntry(focusedNode);
-    if (entry) showResonance(focusedNode, entry);
-  }
+
+  // Show signal for focused node immediately
+  if (focusedNode) showResonance(focusedNode);
 }
 
 // ── Clock ──────────────────────────────────────────────────
