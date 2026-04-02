@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Undertow</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #f4f1ea;
+  --bg2:       #edeade;
+  --ink:       #1c1a16;
+  --ink2:      #5a5750;
+  --ink3:      #9a9790;
+  --border:    rgba(28,26,22,0.1);
+  --border2:   rgba(28,26,22,0.22);
+  --physical:  #2a4a3a;
+  --market:    #1a3a6a;
+  --sentiment: #8b3a1a;
+  --diverge:   #7a1a1a;
+  --resonance: #4a3a1a;
+  --serif: 'Libre Baskerville', Georgia, serif;
+  --mono:  'DM Mono', monospace;
+}
+
+html, body {
+  width: 100%; min-height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--serif);
+}
+
+#app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 28px 48px;
+}
+
+/* ── Header ── */
+#hdr {
+  padding: 28px 0 18px;
+  border-bottom: 0.5px solid var(--border2);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+}
+#hdr-title {
+  font-size: clamp(18px, 2.8vw, 26px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+#hdr-title em { font-style: italic; color: var(--ink2); }
+#hdr-sub {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink3);
+  margin-top: 5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+#hdr-right { text-align: right; flex-shrink: 0; }
+#clock {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink3);
+  letter-spacing: 0.06em;
+}
+#data-ind {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--ink3);
+  margin-top: 3px;
+}
+#data-ind span { color: var(--market); }
+
+/* ── Key strip ── */
+#key-strip {
+  display: flex;
+  gap: 20px;
+  padding: 11px 0;
+  border-bottom: 0.5px solid var(--border);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.key-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.key-item strong {
+  font-weight: 400;
+  color: var(--ink2);
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: var(--serif);
+  font-size: 8.5px;
+}
+.key-swatch {
+  width: 10px; height: 10px;
+  flex-shrink: 0;
+}
+.key-swatch.physical  { background: var(--physical);  opacity: 0.75; border-radius: 50%; }
+.key-swatch.market    { background: var(--market);    opacity: 0.75; border-radius: 2px; }
+.key-swatch.sentiment { background: var(--sentiment); opacity: 0.5;  border-radius: 50%; box-shadow: 0 0 0 3px rgba(139,58,26,0.15); }
+.key-sep { width: 0.5px; height: 14px; background: var(--border2); margin: 0 2px; }
+#gap-key {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.gap-dash {
+  width: 22px; height: 1px;
+  border-top: 1.5px dashed rgba(122,26,26,0.5);
+}
+
+/* ── Field ── */
+#field-wrap {
+  position: relative;
+  margin: 14px 0 0;
+  background: var(--bg2);
+  border: 0.5px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+#schematic { width: 100%; display: block; }
+#overlay   { position: absolute; top: 0; left: 0; pointer-events: none; }
+
+/* ── Resonance ── */
+#resonance {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 20px 22px 16px;
+  background: linear-gradient(transparent, rgba(237,234,222,0.97) 35%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1s ease;
+}
+#resonance.visible { opacity: 1; }
+#resonance-node {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  color: var(--resonance);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  margin-bottom: 5px;
+  opacity: 0.8;
+}
+#resonance-text {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 12px;
+  color: var(--ink2);
+  line-height: 1.55;
+  max-width: 580px;
+}
+
+/* ── Panels ── */
+#panels {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+@media (max-width: 620px) { #panels { grid-template-columns: 1fr; } }
+
+.panel {
+  background: white;
+  border: 0.5px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.panel:hover { border-color: var(--border2); }
+.panel.panel-focused {
+  border-color: var(--border2);
+  box-shadow: 0 2px 18px rgba(28,26,22,0.07);
+}
+#overlay { cursor: pointer; }
+.panel-diverge-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--diverge);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 1.2s ease;
+  opacity: 0;
+  transition: transform 1.2s ease, opacity 0.4s ease;
+}
+.panel-name {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-bottom: 2px;
+}
+.panel-region {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 11px;
+}
+.panel-gap-statement {
+  font-style: italic;
+  font-size: 11px;
+  color: var(--ink2);
+  line-height: 1.45;
+  margin-bottom: 11px;
+  min-height: 34px;
+  transition: color 0.6s;
+}
+.panel-registers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.reg-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.reg-label {
+  font-family: var(--mono);
+  font-size: 7px;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  width: 36px;
+  flex-shrink: 0;
+}
+.reg-track {
+  flex: 1;
+  height: 2px;
+  background: var(--border);
+  border-radius: 1px;
+}
+.reg-fill {
+  height: 100%;
+  border-radius: 1px;
+  transition: width 1.4s cubic-bezier(0.4,0,0.2,1);
+}
+.reg-val {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  color: var(--ink3);
+  width: 30px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.panel-gap-line {
+  border-top: 0.5px solid var(--border);
+  padding-top: 8px;
+  margin-top: 2px;
+}
+.gap-state {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  transition: color 0.6s;
+}
+/* Rate micro-label appears after · in gap-state — de-emphasised */
+.gap-state .rate {
+  text-transform: none;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+.gap-subtext {
+  font-family: var(--mono);
+  font-size: 7px;
+  color: var(--ink3);
+  margin-top: 3px;
+  line-height: 1.55;
+  min-height: 11px;
+}
+
+/* ── Footer ── */
+#footer {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 0.5px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+#footer-note {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  color: var(--ink3);
+  line-height: 1.8;
+  max-width: 600px;
+}
+#footer-meta {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  color: var(--ink3);
+  text-align: right;
+  line-height: 1.8;
+  white-space: nowrap;
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<div id="hdr">
+  <div>
+    <div id="hdr-title">Undertow</div>
+    <div id="hdr-sub">Material flows · Market signal · Collective sentiment · Live divergence</div>
+  </div>
+  <div id="hdr-right">
+    <div id="clock"></div>
+    <div id="data-ind">Data <span id="dind">INIT</span></div>
+  </div>
+</div>
+
+<div id="key-strip">
+  <div class="key-item">
+    <div class="key-swatch physical"></div>
+    <strong>Physical flow</strong> — actual transit volume
+  </div>
+  <div class="key-item">
+    <div class="key-swatch market"></div>
+    <strong>Market signal</strong> — price &amp; insurance premiums
+  </div>
+  <div class="key-item">
+    <div class="key-swatch sentiment"></div>
+    <strong>Collective sentiment</strong> — news volume &amp; narrative spread
+  </div>
+  <div class="key-sep"></div>
+  <div id="gap-key">
+    <div class="gap-dash"></div>
+    Gap: physical reality vs felt experience
+  </div>
+</div>
+
+<!-- Schematic field -->
+<div id="field-wrap">
+  <svg id="schematic" viewBox="0 0 960 440" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <pattern id="water-hatch" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(30)">
+        <line x1="0" y1="0" x2="0" y2="7" stroke="rgba(28,26,22,0.05)" stroke-width="0.7"/>
+      </pattern>
+    </defs>
+
+    <!-- ═══ HORMUZ — Persian Gulf / Gulf of Oman ═══ -->
+    <!-- Arabian Peninsula -->
+    <path d="M 612,82 L 718,62 L 818,92 L 858,162 L 820,244 L 760,292 L 682,312 L 622,282 L 592,222 L 602,152 Z"
+          fill="#e8e4d8" stroke="rgba(28,26,22,0.13)" stroke-width="0.5"/>
+    <!-- Iran / Oman mountains -->
+    <path d="M 582,42 L 682,32 L 762,52 L 792,82 L 762,112 L 692,104 L 622,82 L 592,62 Z"
+          fill="#e4e0d2" stroke="rgba(28,26,22,0.13)" stroke-width="0.5"/>
+    <!-- Persian Gulf water body -->
+    <path d="M 622,82 L 692,104 L 762,112 L 792,142 L 782,182 L 742,202 L 682,192 L 632,172 L 602,152 Z"
+          fill="url(#water-hatch)" stroke="rgba(28,26,22,0.09)" stroke-width="0.4"/>
+    <!-- Gulf of Oman — wider opening east of strait -->
+    <path d="M 792,142 L 838,128 L 858,162 L 844,194 L 804,188 L 782,182 Z"
+          fill="url(#water-hatch)" stroke="rgba(28,26,22,0.09)" stroke-width="0.4"/>
+    <!-- Strait throat marker — the actual pinch point -->
+    <line x1="792" y1="146" x2="820" y2="138"
+          stroke="rgba(28,26,22,0.22)" stroke-width="1.4"/>
+    <!-- Hormuz geography labels -->
+    <text x="700" y="158" font-family="'DM Mono',monospace" font-size="6.5" fill="rgba(28,26,22,0.28)" text-anchor="middle" letter-spacing="1.5">PERSIAN GULF</text>
+    <text x="836" y="122" font-family="'DM Mono',monospace" font-size="6" fill="rgba(28,26,22,0.22)" text-anchor="middle" letter-spacing="1">GULF OF OMAN</text>
+    <!-- Strait label — at the throat, not in the gulf -->
+    <text x="810" y="136" font-family="'DM Mono',monospace" font-size="6" fill="rgba(28,26,22,0.35)" text-anchor="start" letter-spacing="0.5">◂ STRAIT OF HORMUZ</text>
+
+    <!-- ═══ SUEZ — Mediterranean / Red Sea ═══ -->
+    <!-- Sinai Peninsula and Egypt -->
+    <path d="M 322,38 L 432,38 L 472,62 L 468,92 L 452,142 L 402,162 L 352,142 L 322,102 Z"
+          fill="#e8e4d8" stroke="rgba(28,26,22,0.13)" stroke-width="0.5"/>
+    <!-- Arabian Peninsula west side -->
+    <path d="M 472,92 L 542,82 L 582,122 L 562,182 L 502,202 L 452,182 L 452,142 L 468,92 Z"
+          fill="#e4e0d2" stroke="rgba(28,26,22,0.13)" stroke-width="0.5"/>
+    <!-- Mediterranean — strip above Egypt -->
+    <path d="M 272,38 L 432,38 L 432,40 L 322,38 L 272,42 Z"
+          fill="url(#water-hatch)" stroke="none"/>
+    <rect x="272" y="28" width="200" height="12"
+          fill="url(#water-hatch)" stroke="rgba(28,26,22,0.07)" stroke-width="0.3"/>
+    <!-- Red Sea -->
+    <path d="M 452,142 L 482,148 L 512,182 L 532,244 L 512,272 L 482,262 L 462,212 L 452,182 Z"
+          fill="url(#water-hatch)" stroke="rgba(28,26,22,0.09)" stroke-width="0.4"/>
+    <!-- Suez Canal — dashed engineering line connecting Med to Red Sea -->
+    <line x1="432" y1="38" x2="452" y2="142"
+          stroke="rgba(28,26,22,0.28)" stroke-width="1.3" stroke-dasharray="3,2"/>
+    <!-- Labels -->
+    <text x="352" y="26" font-family="'DM Mono',monospace" font-size="6.5" fill="rgba(28,26,22,0.28)" text-anchor="middle" letter-spacing="1">MEDITERRANEAN</text>
+    <text x="492" y="212" font-family="'DM Mono',monospace" font-size="6.5" fill="rgba(28,26,22,0.28)" text-anchor="middle" letter-spacing="1">RED SEA</text>
+    <text x="398" y="94" font-family="'DM Mono',monospace" font-size="6" fill="rgba(28,26,22,0.35)" text-anchor="end" letter-spacing="0.5">SUEZ CANAL ▸</text>
+
+    <!-- ═══ PANAMA — Caribbean / Pacific ═══ -->
+    <!-- Central America isthmus — wider, more accurate shape -->
+    <path d="M 98,218 L 162,208 L 204,228 L 214,272 L 184,304 L 142,294 L 98,262 Z"
+          fill="#e8e4d8" stroke="rgba(28,26,22,0.13)" stroke-width="0.5"/>
+    <!-- Caribbean Sea (north of isthmus) -->
+    <rect x="72" y="168" width="148" height="44"
+          fill="url(#water-hatch)" stroke="rgba(28,26,22,0.07)" stroke-width="0.3" rx="2"/>
+    <!-- Pacific (south of isthmus) -->
+    <path d="M 72,262 L 98,262 L 142,294 L 152,334 L 112,342 L 72,312 Z"
+          fill="url(#water-hatch)" stroke="rgba(28,26,22,0.07)" stroke-width="0.3"/>
+    <!-- Panama Canal line — roughly E-W, 80km across the isthmus -->
+    <line x1="158" y1="212" x2="148" y2="282"
+          stroke="rgba(28,26,22,0.28)" stroke-width="1.3" stroke-dasharray="3,2"/>
+    <!-- Labels -->
+    <text x="148" y="162" font-family="'DM Mono',monospace" font-size="6.5" fill="rgba(28,26,22,0.28)" text-anchor="middle" letter-spacing="1">CARIBBEAN</text>
+    <text x="100" y="322" font-family="'DM Mono',monospace" font-size="6.5" fill="rgba(28,26,22,0.28)" text-anchor="middle" letter-spacing="1">PACIFIC</text>
+    <text x="188" y="250" font-family="'DM Mono',monospace" font-size="6" fill="rgba(28,26,22,0.35)" text-anchor="start" letter-spacing="0.5">◂ PANAMA CANAL</text>
+
+    <!-- ═══ Route connections (schematic only — not geographic) ═══ -->
+    <!-- Hormuz → Red Sea (tankers rounding Oman, through Bab el-Mandeb to Red Sea/Suez) -->
+    <path d="M 800,172 Q 660,290 512,262"
+          fill="none" stroke="rgba(28,26,22,0.055)" stroke-width="0.9" stroke-dasharray="5,7"/>
+    <!-- Suez → Atlantic → Panama -->
+    <path d="M 392,80 Q 272,128 214,208"
+          fill="none" stroke="rgba(28,26,22,0.055)" stroke-width="0.9" stroke-dasharray="5,7"/>
+    <!-- Cape of Good Hope alternative (faint) — when Suez/Hormuz blocked -->
+    <path d="M 800,200 Q 780,380 520,400 Q 300,420 214,280"
+          fill="none" stroke="rgba(28,26,22,0.03)" stroke-width="0.7" stroke-dasharray="2,9"/>
+    <!-- Route label -->
+    <text x="650" y="298" font-family="'DM Mono',monospace" font-size="5.5" fill="rgba(28,26,22,0.18)" text-anchor="middle" letter-spacing="0.5">TANKER ROUTE</text>
+    <text x="300" y="112" font-family="'DM Mono',monospace" font-size="5.5" fill="rgba(28,26,22,0.18)" text-anchor="middle" letter-spacing="0.5">ATLANTIC ROUTE</text>
+  </svg>
+
+  <canvas id="overlay"></canvas>
+
+  <div id="resonance">
+    <div id="resonance-node"></div>
+    <div id="resonance-text"></div>
+  </div>
+</div>
+
+<!-- Node detail panels -->
+<div id="panels">
+
+  <div class="panel" id="panel-hormuz">
+    <div class="panel-diverge-bar" id="dbar-hormuz"></div>
+    <div class="panel-name">Strait of Hormuz</div>
+    <div class="panel-region">Persian Gulf · Oil &amp; LNG · 20% of global oil supply</div>
+    <div class="panel-gap-statement" id="stmt-hormuz"></div>
+    <div class="panel-registers">
+      <div class="reg-row">
+        <span class="reg-label" style="color:var(--physical)">Flow</span>
+        <div class="reg-track"><div class="reg-fill" id="rf-hormuz-p" style="background:var(--physical)"></div></div>
+        <span class="reg-val" id="rv-hormuz-p"></span>
+      </div>
+      <div class="reg-row">
+        <span class="reg-label" style="color:var(--market)">Market</span>
+        <div class="reg-track"><div class="reg-fill" id="rf-hormuz-m" style="background:var(--market)"></div></div>
+        <span class="reg-val" id="rv-hormuz-m"></span>
+      </div>
+      <div class="reg-row">
+        <span class="reg-label" style="color:var(--sentiment)">Felt</span>
+        <div class="reg-track"><div class="reg-fill" id="rf-hormuz-s" style="background:var(--sentiment)"></div></div>
+        <span class="reg-val" id="rv-hormuz-s"></span>
+      </div>
+    </div>
+    <div class="panel-gap-line">
+      <div class="gap-state" id="gs-hormuz"></div>
+      <div class="gap-subtext" id="gsub-hormuz"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-suez">
+    <div class="panel-diverge-bar" id="dbar-suez"></div>
+    <div class="panel-name">Suez Canal</div>
+    <div class="panel-region">Mediterranean · Red Sea · Container &amp; tanker traffic</div>
+    <div class="panel-gap-statement" id="stmt-suez"></div>
+    <div class="panel-registers">
+      <div class="reg-row">
+        <span class="reg-label" style="color:var(--physical)">Flow</span>
+        <div class="reg-track"><div class="reg-fill" id="rf-suez-p" style="background:var(--physical)"></div></div>
+        <span class="reg-val" id="rv-suez-p"></span>
+      </div>
+      <div class="reg-row">
+        <span class="reg-label" style="color:var(--market)">Market</span>
+        <div class="reg-track"><div class="reg-fill" id="rf-suez-m" style="background:var(--market)"></div></div>
+        <span class="reg-val" id="rv-suez-m"></span>
+      </div>
+      <div class="reg-row">
+        <span class="reg-label" style="color:var(--sentiment)">Felt</span>
+        <div class="reg-track"><div class="reg-fill" id="rf-suez-s" style="background:var(--sentiment)"></div></div>
+        <span class="reg-val" id="rv-suez-s"></span>
+      </div>
+    </div>
+    <div class="panel-gap-line">
+      <div class="gap-state" id="gs-suez"></div>
+      <div class="gap-subtext" id="gsub-suez"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-panama">
+    <div class="panel-diverge-bar" id="dbar-panama"></div>
+    <div class="panel-name">Panama Canal</div>
+    <div class="panel-region">Caribbean · Pacific · Grain, bulk &amp; container</div>
+    <div class="panel-gap-statement" id="stmt-panama"></div>
+    <div class="panel-registers">
+      <div class="reg-row">
+        <span class="reg-label" style="color:var(--physical)">Flow</span>
+        <div class="reg-track"><div class="reg-fill" id="rf-panama-p" style="background:var(--physical)"></div></div>
+        <span class="reg-val" id="rv-panama-p"></span>
+      </div>
+      <div class="reg-row">
+        <span class="reg-label" style="color:var(--market)">Market</span>
+        <div class="reg-track"><div class="reg-fill" id="rf-panama-m" style="background:var(--market)"></div></div>
+        <span class="reg-val" id="rv-panama-m"></span>
+      </div>
+      <div class="reg-row">
+        <span class="reg-label" style="color:var(--sentiment)">Felt</span>
+        <div class="reg-track"><div class="reg-fill" id="rf-panama-s" style="background:var(--sentiment)"></div></div>
+        <span class="reg-val" id="rv-panama-s"></span>
+      </div>
+    </div>
+    <div class="panel-gap-line">
+      <div class="gap-state" id="gs-panama"></div>
+      <div class="gap-subtext" id="gsub-panama"></div>
+    </div>
+  </div>
+
+</div>
+
+<div id="footer">
+  <div id="footer-note">
+    Three registers are tracked simultaneously at each chokepoint. <em>Flow</em> reflects actual transit volume and physical constraint (0 = closed, 100 = fully open). <em>Market</em> reflects price and war-risk insurance signals as a forward-looking proxy — markets price expected disruption before it fully materialises. <em>Felt</em> reflects collective public sentiment derived from news volume and narrative spread — typically the slowest of the three to move. The gap between Flow and Felt is the primary signal: when physical reality is severe but collective awareness has not yet registered it, the system surfaces a comparable historical moment.
+  </div>
+  <div id="footer-meta">
+    Undertow v1.1 · live data where available<br>
+    A project in the Animal Spirits lineage
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════
+//  UNDERTOW v1.1
+//  Material flows · Market signal · Collective sentiment
+//  A project in the Animal Spirits lineage
+// ═══════════════════════════════════════════════════════════
+
+// ── Node definitions ───────────────────────────────────────
+// SVG viewBox 960×440. Positions at actual chokepoint throats.
+const NODES = {
+  hormuz: {
+    id: 'hormuz', label: 'Strait of Hormuz',
+    cx: 806, cy: 144,   // at the strait throat between the two water bodies
+  },
+  suez: {
+    id: 'suez', label: 'Suez Canal',
+    cx: 442, cy: 90,    // mid-canal
+  },
+  panama: {
+    id: 'panama', label: 'Panama Canal',
+    cx: 153, cy: 247,   // mid-canal
+  },
+};
+
+// ── State ──────────────────────────────────────────────────
+// flow:      0 = closed/broken, 1 = fully open
+// market:    0 = calm baseline, 1 = extreme stress signal
+// sentiment: 0 = unregistered publicly, 1 = peak collective awareness
+const STATE = {
+  hormuz: {
+    flow:      0.06,  // near-total closure since late Feb 2026
+    market:    0.91,  // Brent ~$126, war-risk premiums at historic highs
+    sentiment: 0.52,  // spreading but still lagging physical reality
+  },
+  suez: {
+    flow:      0.42,  // reduced — receiving Hormuz rerouting pressure
+    market:    0.68,  // elevated freight rates, reroute cost premium
+    sentiment: 0.44,  // moderate — secondary story vs Hormuz
+  },
+  panama: {
+    flow:      0.55,  // partial — ongoing drought-related draught restrictions
+    market:    0.38,  // moderate — freight rate adjustment for bulk
+    sentiment: 0.18,  // low — bulk/grain routes are not visible to consumers
+  },
+};
+
+// Smoothed display state (what canvas reads each frame)
+const ANIM = {
+  hormuz: { p: 0.06, m: 0.91, s: 0.52 },
+  suez:   { p: 0.42, m: 0.68, s: 0.44 },
+  panama: { p: 0.55, m: 0.38, s: 0.18 },
+};
+
+// ── Ghost store — directional traces ──────────────────────
+// Ring buffer: 3 samples per node, taken every 90s real time.
+// Each sample: { p, m, s, magnitude } — full register snapshot.
+// Oldest ghost = index 0, most recent = index 2.
+// Ghost opacity decreases with age: 0.14 → 0.10 → 0.06
+const GHOST_COUNT  = 3;
+const GHOST_INTERVAL = 90000; // 90 seconds real time
+const GHOSTS = {
+  hormuz: [],
+  suez:   [],
+  panama: [],
+};
+let lastGhostTime = 0;
+
+function sampleGhosts(now) {
+  if (now - lastGhostTime < GHOST_INTERVAL) return;
+  lastGhostTime = now;
+  for (const id of Object.keys(NODES)) {
+    const a = ANIM[id];
+    const { magnitude } = getGap(id);
+    GHOSTS[id].push({ p: a.p, m: a.m, s: a.s, magnitude });
+    if (GHOSTS[id].length > GHOST_COUNT) GHOSTS[id].shift();
+  }
+}
+
+// ── Rate-of-change signal ─────────────────────────────────
+// Derived from oldest ghost vs current magnitude.
+// Returns: { label, direction, rate }
+//   direction: 1 = widening, -1 = closing, 0 = stable
+//   rate: 0–1 normalised speed of change
+const RATE_THRESHOLD = 0.04; // minimum delta to label
+
+function getRate(id) {
+  const ghosts = GHOSTS[id];
+  if (ghosts.length < 1) return { label: '', direction: 0, rate: 0 };
+  const oldest   = ghosts[0].magnitude;
+  const current  = getGap(id).magnitude;
+  const delta    = current - oldest;
+  const absDelta = Math.abs(delta);
+  if (absDelta < RATE_THRESHOLD) return { label: '', direction: 0, rate: 0 };
+  const direction = delta > 0 ? 1 : -1;
+  const rate = clamp(absDelta / 0.25, 0, 1);
+  const label = direction === 1 ? 'widening' : 'closing';
+  return { label, direction, rate };
+}
+
+// ── Historical resonance ───────────────────────────────────
+// Each entry triggers at minGap (|flow - sentiment| magnitude).
+// Entries verified for factual accuracy April 2026.
+const RESONANCE = {
+  hormuz: [
+    {
+      minGap: 0.48,
+      text: "In 1979, Iran's revolution disrupted Hormuz physically for weeks before collective sentiment caught up. Fear then outlasted the physical constraint by months — hoarding behaviour prolonged the supply shock well past the original disruption.",
+    },
+    {
+      minGap: 0.32,
+      text: "In 2019, IRGC attacks on tankers caused war-risk insurance premiums to spike sharply before public awareness followed. Sentiment reached consumers six to eight weeks later, when fuel prices moved at the pump.",
+    },
+    {
+      minGap: 0.18,
+      text: "During the 2011–12 US-Iran nuclear standoff, market signals elevated for nearly three months ahead of public sentiment. Physical flow through the strait was never significantly interrupted — the gap closed when tensions de-escalated.",
+    },
+  ],
+  suez: [
+    {
+      minGap: 0.42,
+      text: "The Ever Given grounding in March 2021 produced an extreme short-term market spike. Public sentiment barely registered — the physical blockage resolved in six days, though freight rate effects persisted for months.",
+    },
+    {
+      minGap: 0.26,
+      text: "Houthi attacks on Red Sea shipping from late 2023 rerouted significant container traffic around the Cape of Good Hope, adding 10–14 days per voyage. Market freight rates adjusted within weeks; most consumers only noticed delivery delays several months later.",
+    },
+    {
+      minGap: 0.14,
+      text: "The 1956 Suez Crisis produced unusually rapid convergence between physical disruption and public sentiment — driven by Cold War news intensity and direct petrol rationing in the UK, France and Israel within weeks of closure.",
+    },
+  ],
+  panama: [
+    {
+      minGap: 0.38,
+      text: "The 2023 drought imposed the most severe vessel-draught restrictions in canal history. Freight rates on bulk routes adjusted within weeks. Public sentiment did not materially move — grain and dry-bulk shipping has no direct consumer touchpoint.",
+    },
+    {
+      minGap: 0.18,
+      text: "Panama's water-level constraints have tightened across three consecutive dry seasons since 2021. Physical constraint is real and accumulating. Collective awareness has not tracked the ratchet — the disruption has no single visible event to anchor it.",
+    },
+  ],
+};
+
+// ── Gap analysis ───────────────────────────────────────────
+function getGap(id) {
+  const a = ANIM[id];
+  // psGap: sentiment minus flow
+  //   positive → felt experience exceeds physical reality (fear ahead of facts)
+  //   negative → physical reality exceeds felt experience (reality unregistered)
+  const psGap = a.s - a.p;
+  const msGap = a.m - a.s;   // market vs sentiment
+  return { psGap, msGap, magnitude: Math.abs(psGap) };
+}
+
+function gapStatement(id) {
+  const { psGap, msGap, magnitude } = getGap(id);
+
+  if (magnitude < 0.10) return {
+    text: "Physical reality and collective awareness are broadly aligned.",
+    color: 'var(--ink3)', state: "Aligned", sub: "",
+  };
+  if (psGap < -0.45) return {
+    text: "The disruption is severe but most people have not yet felt it. The distance between what is happening and what is registered is at its widest.",
+    color: 'var(--diverge)',
+    state: "Physical reality far ahead",
+    sub: msGap > 0.18 ? "Markets have priced this in. Public awareness has not." : "Sentiment is beginning to follow.",
+  };
+  if (psGap < -0.22) return {
+    text: "Physical conditions are significantly worse than collective sentiment reflects. Markets have adjusted; awareness is catching up.",
+    color: 'var(--diverge)',
+    state: "Awareness lagging",
+    sub: "Expect sentiment to follow as effects reach consumers.",
+  };
+  if (psGap < -0.10) return {
+    text: "A moderate gap between physical constraint and public awareness. Normal lag for disruptions insulated from daily life.",
+    color: 'var(--ink2)', state: "Mild lag", sub: "",
+  };
+  if (psGap > 0.38) return {
+    text: "Collective fear is running well ahead of the physical reality. Sentiment may correct as conditions stabilise — or the fear itself may reshape behaviour.",
+    color: 'var(--resonance)',
+    state: "Fear ahead of facts",
+    sub: "Watch for sentiment correction or physical conditions catching up.",
+  };
+  if (psGap > 0.18) return {
+    text: "Public concern is ahead of current physical constraint — anticipatory. Behaviour may be changing before conditions fully warrant it.",
+    color: 'var(--ink2)', state: "Anticipatory", sub: "",
+  };
+  return {
+    text: "Registers are converging.",
+    color: 'var(--ink3)', state: "Converging", sub: "",
+  };
+}
+
+function getResonanceEntry(id) {
+  const { magnitude } = getGap(id);
+  return (RESONANCE[id] || []).find(e => magnitude >= e.minGap) || null;
+}
+
+// ── Canvas ─────────────────────────────────────────────────
+const svg     = document.getElementById('schematic');
+const overlay = document.getElementById('overlay');
+const ctx     = overlay.getContext('2d');
+let W, H, scaleX, scaleY, dpr;
+const SVG_W = 960, SVG_H = 440;
+
+function resize() {
+  dpr = window.devicePixelRatio || 1;
+  const rect = svg.getBoundingClientRect();
+  W = rect.width;
+  H = rect.height;
+  // FIX: reset transform before re-applying, prevent accumulation
+  ctx.resetTransform();
+  overlay.width  = W * dpr;
+  overlay.height = H * dpr;
+  overlay.style.width  = W + 'px';
+  overlay.style.height = H + 'px';
+  ctx.scale(dpr, dpr);
+  scaleX = W / SVG_W;
+  scaleY = H / SVG_H;
+}
+
+function nodeScreen(id) {
+  const n = NODES[id];
+  return { x: n.cx * scaleX, y: n.cy * scaleY };
+}
+
+// ── Animation loop ─────────────────────────────────────────
+let t = 0;
+let lastPanelUpdate = -999;
+const PANEL_UPDATE_INTERVAL = 200;
+
+function lerp(a, b, k) { return a + (b - a) * k; }
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+function tick(ts) {
+  requestAnimationFrame(tick);
+  t += 0.014; // faster clock — more visible motion
+  const now = ts || 0;
+
+  syntheticDrift();
+
+  // Lerp speeds lifted — changes register within seconds not minutes
+  // Flow: slow but perceptible  Market: fast  Sentiment: medium
+  for (const id of Object.keys(NODES)) {
+    const s = STATE[id];
+    const a = ANIM[id];
+    a.p = lerp(a.p, s.flow,      0.028);
+    a.m = lerp(a.m, s.market,    0.048);
+    a.s = lerp(a.s, s.sentiment, 0.034);
+  }
+
+  render();
+
+  if (now - lastPanelUpdate > PANEL_UPDATE_INTERVAL) {
+    updatePanels();
+    updateResonance(now);
+    lastPanelUpdate = now;
+  }
+  // Sample ghost states on real-time interval
+  sampleGhosts(now);
+}
+
+// ── Render ─────────────────────────────────────────────────
+function render() {
+  ctx.clearRect(0, 0, W, H);
+  drawRoutes();
+  // Draw ghost traces first — underneath current state
+  for (const id of Object.keys(NODES)) {
+    const dim = focusedNode && focusedNode !== id;
+    ctx.globalAlpha = dim ? 0.12 : 1.0;
+    drawGhosts(id);
+    ctx.globalAlpha = 1.0;
+  }
+  for (const id of Object.keys(NODES)) {
+    const dim = focusedNode && focusedNode !== id;
+    ctx.globalAlpha = dim ? 0.28 : 1.0;
+    drawNode(id);
+    ctx.globalAlpha = 1.0;
+  }
+}
+
+// ── Ghost trace rendering ──────────────────────────────────
+// Renders 2–3 past states as faint echoes behind current shapes.
+// Pre-attentive: opacity decreases with age, no outlines, no labels.
+// Ghost gap lines show trajectory — longer than current = widening,
+// shorter = closing. The viewer reads this without being told.
+function drawGhosts(id) {
+  const ghosts = GHOSTS[id];
+  if (ghosts.length === 0) return;
+  const { x, y } = nodeScreen(id);
+
+  // Opacity schedule: oldest=0.06, middle=0.10, newest=0.14
+  const baseOpacities = [0.06, 0.10, 0.14];
+  // Align to end of array (may have fewer than 3 ghosts initially)
+  const start = GHOST_COUNT - ghosts.length;
+
+  ghosts.forEach((g, gi) => {
+    const opIdx  = start + gi;
+    const opBase = baseOpacities[opIdx] || 0.06;
+
+    // Ghost shape sizes from sampled values
+    const physR  = 7  + g.p * 26;
+    const mR     = 6  + g.m * 20;
+    const sR     = 9  + g.s * 28;
+    const mOffX  = W * 0.022;
+    const mOffY  = H * 0.035;
+    const sOffX  = W * 0.026;
+    const sOffY  = H * 0.038;
+    const gMx    = x + mOffX;
+    const gMy    = y - mOffY;
+    const gSx    = x - sOffX;
+    const gSy    = y + sOffY;
+
+    // Flow ghost — solid circle, minimal
+    ctx.beginPath();
+    ctx.arc(x, y, physR, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(42,74,58,${opBase * 0.9})`;
+    ctx.fill();
+
+    // Market ghost — rounded rect outline only (not filled)
+    const cr = mR * 0.28;
+    ctx.beginPath();
+    ctx.moveTo(gMx - mR + cr, gMy - mR);
+    ctx.lineTo(gMx + mR - cr, gMy - mR);
+    ctx.arcTo(gMx + mR, gMy - mR, gMx + mR, gMy - mR + cr, cr);
+    ctx.lineTo(gMx + mR, gMy + mR - cr);
+    ctx.arcTo(gMx + mR, gMy + mR, gMx + mR - cr, gMy + mR, cr);
+    ctx.lineTo(gMx - mR + cr, gMy + mR);
+    ctx.arcTo(gMx - mR, gMy + mR, gMx - mR, gMy + mR - cr, cr);
+    ctx.lineTo(gMx - mR, gMy - mR + cr);
+    ctx.arcTo(gMx - mR, gMy - mR, gMx - mR + cr, gMy - mR, cr);
+    ctx.closePath();
+    ctx.strokeStyle = `rgba(26,58,106,${opBase * 1.1})`;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+
+    // Sentiment ghost — soft circle, just outer edge
+    ctx.beginPath();
+    ctx.arc(gSx, gSy, sR, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(139,58,26,${opBase * 1.0})`;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+
+    // Ghost gap line — the key trajectory signal
+    // Comparing ghost line length to current line length gives rate direction
+    const gMagnitude = g.magnitude;
+    if (gMagnitude > 0.10) {
+      const gA = clamp((gMagnitude - 0.10) / 0.45, 0, 1);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(gSx, gSy);
+      ctx.strokeStyle = `rgba(122,26,26,${opBase * gA * 1.8})`;
+      ctx.setLineDash([2, 6]);
+      ctx.lineWidth = 0.5 + gMagnitude * 0.8;
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  });
+}
+
+function drawNode(id) {
+  const { x, y } = nodeScreen(id);
+  const a = ANIM[id];
+  const { psGap, magnitude } = getGap(id);
+
+  // ── Flow layer (physical) ──────────────────────────────
+  // Circle. Dense when open, almost absent when closed.
+  const physR = 7 + a.p * 26;
+  const physA = 0.12 + a.p * 0.52;
+
+  // Outer diffusion halo
+  const g1 = ctx.createRadialGradient(x, y, 0, x, y, physR * 2.4);
+  g1.addColorStop(0,   `rgba(42,74,58,${physA * 0.65})`);
+  g1.addColorStop(0.5, `rgba(42,74,58,${physA * 0.25})`);
+  g1.addColorStop(1,   `rgba(42,74,58,0)`);
+  ctx.beginPath();
+  ctx.arc(x, y, physR * 2.4, 0, Math.PI * 2);
+  ctx.fillStyle = g1;
+  ctx.fill();
+
+  // Solid core
+  ctx.beginPath();
+  ctx.arc(x, y, physR, 0, Math.PI * 2);
+  ctx.fillStyle = `rgba(42,74,58,${physA})`;
+  ctx.fill();
+
+  // Orbiting particles — vessels in transit
+  // FIX: count reflects actual flow; near-zero flow = almost no particles
+  if (a.p > 0.08) {
+    const nP = Math.max(1, Math.floor(a.p * 7));
+    for (let pi = 0; pi < nP; pi++) {
+      const angle = t * (0.35 + pi * 0.09) + (pi / nP) * Math.PI * 2;
+      const oR = physR * (1.35 + pi * 0.14);
+      ctx.beginPath();
+      ctx.arc(x + Math.cos(angle) * oR, y + Math.sin(angle) * oR, 1.1, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(42,74,58,${0.28 + a.p * 0.32})`;
+      ctx.fill();
+    }
+  }
+
+  // ── Market layer ────────────────────────────────────────
+  // Rounded rectangle. Cool blue. Offset upper-right.
+  // Inherits Animal Spirits visual grammar directly.
+  const mR  = 6 + a.m * 20;
+  const mA  = 0.16 + a.m * 0.52;
+  // FIX: offsets proportional to canvas size, not fixed pixels
+  const mx  = x + W * 0.022;
+  const my  = y - H * 0.035;
+
+  const g2 = ctx.createRadialGradient(mx, my, 0, mx, my, mR * 2.2);
+  g2.addColorStop(0,   `rgba(26,58,106,${mA * 0.55})`);
+  g2.addColorStop(0.4, `rgba(26,58,106,${mA * 0.18})`);
+  g2.addColorStop(1,   `rgba(26,58,106,0)`);
+  ctx.beginPath();
+  ctx.arc(mx, my, mR * 2.2, 0, Math.PI * 2);
+  ctx.fillStyle = g2;
+  ctx.fill();
+
+  // Rounded rect core
+  const cr = mR * 0.28;
+  ctx.beginPath();
+  ctx.moveTo(mx - mR + cr, my - mR);
+  ctx.lineTo(mx + mR - cr, my - mR);
+  ctx.arcTo(mx + mR, my - mR, mx + mR, my - mR + cr, cr);
+  ctx.lineTo(mx + mR, my + mR - cr);
+  ctx.arcTo(mx + mR, my + mR, mx + mR - cr, my + mR, cr);
+  ctx.lineTo(mx - mR + cr, my + mR);
+  ctx.arcTo(mx - mR, my + mR, mx - mR, my + mR - cr, cr);
+  ctx.lineTo(mx - mR, my - mR + cr);
+  ctx.arcTo(mx - mR, my - mR, mx - mR + cr, my - mR, cr);
+  ctx.closePath();
+  ctx.fillStyle = `rgba(26,58,106,${mA * 0.82})`;
+  ctx.fill();
+
+  // ── Sentiment layer ────────────────────────────────────
+  // Warm, diffuse circle. Offset lower-left.
+  // Small and faint when unregistered (Panama). Large when at peak.
+  const sR = 9 + a.s * 28;
+  const sA = 0.07 + a.s * 0.34;
+  // FIX: proportional offsets
+  const sx = x - W * 0.026;
+  const sy = y + H * 0.038;
+
+  // Wide diffuse warmth
+  const g3 = ctx.createRadialGradient(sx, sy, 0, sx, sy, sR * 3.8);
+  g3.addColorStop(0,    `rgba(139,58,26,${sA * 0.75})`);
+  g3.addColorStop(0.22, `rgba(139,58,26,${sA * 0.35})`);
+  g3.addColorStop(0.58, `rgba(139,58,26,${sA * 0.10})`);
+  g3.addColorStop(1,    `rgba(139,58,26,0)`);
+  ctx.beginPath();
+  ctx.arc(sx, sy, sR * 3.8, 0, Math.PI * 2);
+  ctx.fillStyle = g3;
+  ctx.fill();
+
+  // Core soft circle
+  const g4 = ctx.createRadialGradient(sx, sy, 0, sx, sy, sR);
+  g4.addColorStop(0,   `rgba(139,58,26,${sA * 1.9})`);
+  g4.addColorStop(0.6, `rgba(139,58,26,${sA})`);
+  g4.addColorStop(1,   `rgba(139,58,26,0.015)`);
+  ctx.beginPath();
+  ctx.arc(sx, sy, sR, 0, Math.PI * 2);
+  ctx.fillStyle = g4;
+  ctx.fill();
+
+  // Dashed uncertainty ring when sentiment is low-confidence (< 0.3)
+  if (a.s < 0.32) {
+    ctx.beginPath();
+    ctx.arc(sx, sy, sR * 1.25, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(139,58,26,0.11)`;
+    ctx.setLineDash([2, 4]);
+    ctx.lineWidth = 0.6;
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // ── Gap line: flow centroid → sentiment centroid ───────
+  // Weight = magnitude. Dash speed = rate of change.
+  // Widening → faster animated dash (pre-attentive urgency signal)
+  // Closing  → slower dash (settling feeling)
+  if (magnitude > 0.10) {
+    const gA   = clamp((magnitude - 0.10) / 0.45, 0, 1);
+    const { direction, rate } = getRate(id);
+    // Dash pattern: shorter dashes when widening (more urgent visual texture)
+    const dash  = psGap < 0
+      ? (direction === 1 ? [2, 3] : [4, 4])   // sentiment lagging: tighter when widening
+      : (direction === 1 ? [1, 4] : [2, 5]);   // sentiment leading
+
+    // Animated dash offset — speed encodes rate of change
+    const dashSpeed  = 0.4 + rate * 1.2;        // faster when widening fast
+    const dashOffset = direction >= 0
+      ? -(t * dashSpeed * 8) % 12               // flowing toward sentiment
+      : (t * dashSpeed * 8) % 12;               // flowing away
+
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(sx, sy);
+    ctx.strokeStyle = `rgba(122,26,26,${gA * 0.52})`;
+    ctx.setLineDash(dash);
+    ctx.lineDashOffset = dashOffset;
+    ctx.lineWidth = 0.9 + magnitude * 1.4;
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.lineDashOffset = 0;
+
+    // Pulse ring at midpoint when divergence is severe
+    if (magnitude > 0.32) {
+      const ph = (t * 0.75) % 1;
+      const midX = (x + sx) / 2;
+      const midY = (y + sy) / 2;
+      ctx.beginPath();
+      ctx.arc(midX, midY, ph * 22 * magnitude, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(122,26,26,${(1 - ph) * gA * 0.22})`;
+      ctx.lineWidth = 0.7;
+      ctx.stroke();
+    }
+  }
+
+  // Secondary: market-to-sentiment connection when they diverge
+  const msDiff = Math.abs(a.m - a.s);
+  if (msDiff > 0.22) {
+    const msA = clamp((msDiff - 0.22) / 0.5, 0, 0.35);
+    ctx.beginPath();
+    ctx.moveTo(mx, my);
+    ctx.lineTo(sx, sy);
+    ctx.strokeStyle = `rgba(80,58,136,${msA})`;
+    ctx.setLineDash([1, 5]);
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // ── Focus ring ─────────────────────────────────────────
+  if (focusedNode === id) {
+    const fR = Math.max(physR * 2.4, mR * 2.2, sR * 3.8) + 8;
+    ctx.beginPath();
+    ctx.arc(x, y, fR, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(28,26,22,0.16)`;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 5]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+function drawRoutes() {
+  const h = nodeScreen('hormuz');
+  const s = nodeScreen('suez');
+  const p = nodeScreen('panama');
+  const hp = ANIM.hormuz.p;
+  const sp = ANIM.suez.p;
+
+  // FIX: control points as fractions of W/H, not fixed px
+  // Hormuz → Red Sea / Suez route
+  ctx.beginPath();
+  ctx.moveTo(h.x - W * 0.022, h.y + H * 0.024);
+  ctx.bezierCurveTo(
+    h.x - W * 0.085, h.y + H * 0.14,
+    s.x + W * 0.082, s.y + H * 0.18,
+    s.x + W * 0.005, s.y + H * 0.09
+  );
+  ctx.strokeStyle = `rgba(42,74,58,${0.05 + hp * 0.11})`;
+  ctx.lineWidth = 0.8 + hp * 2.2;
+  ctx.stroke();
+
+  // Suez → Atlantic → Panama route
+  ctx.beginPath();
+  ctx.moveTo(s.x - W * 0.012, s.y + H * 0.012);
+  ctx.bezierCurveTo(
+    s.x - W * 0.105, s.y + H * 0.185,
+    p.x + W * 0.064, p.y - H * 0.092,
+    p.x + W * 0.010, p.y - H * 0.018
+  );
+  ctx.strokeStyle = `rgba(42,74,58,${0.04 + sp * 0.08})`;
+  ctx.lineWidth = 0.7 + sp * 1.6;
+  ctx.stroke();
+}
+
+// ── Panel updates (throttled) ─────────────────────────────
+// Cache previous values to avoid unnecessary DOM writes
+const _prevPanel = {};
+
+function updatePanels() {
+  for (const id of Object.keys(NODES)) {
+    const a = ANIM[id];
+    const stmt = gapStatement(id);
+    const gap  = getGap(id);
+
+    // Only update DOM elements when value has meaningfully changed (>1%)
+    const prev = _prevPanel[id] || {};
+
+    const pPct = Math.round(a.p * 100);
+    const mPct = Math.round(a.m * 100);
+    const sPct = Math.round(a.s * 100);
+
+    if (pPct !== prev.p) { setBar(id, 'p', a.p, pPct); prev.p = pPct; }
+    if (mPct !== prev.m) { setBar(id, 'm', a.m, mPct); prev.m = mPct; }
+    if (sPct !== prev.s) { setBar(id, 's', a.s, sPct); prev.s = sPct; }
+
+    // Rate of change — derived from ghost delta
+    const { label: rateLabel, direction } = getRate(id);
+
+    if (stmt.state !== prev.state || rateLabel !== prev.rateLabel) {
+      const gsEl   = document.getElementById(`gs-${id}`);
+      const gsubEl = document.getElementById(`gsub-${id}`);
+      const stmtEl = document.getElementById(`stmt-${id}`);
+      // Compose gap state: "Awareness lagging · widening"
+      const stateText = rateLabel
+        ? `${stmt.state} · ${rateLabel}`
+        : stmt.state;
+      if (gsEl)   { gsEl.textContent = stateText; gsEl.style.color = stmt.color; }
+      if (gsubEl)   gsubEl.textContent = stmt.sub;
+      if (stmtEl) { stmtEl.textContent = stmt.text; stmtEl.style.color = stmt.color; }
+      prev.state     = stmt.state;
+      prev.rateLabel = rateLabel;
+    }
+
+    // Diverge bar
+    const dbar = document.getElementById(`dbar-${id}`);
+    if (dbar) {
+      const sc = clamp(gap.magnitude / 0.55, 0, 1);
+      dbar.style.transform = `scaleX(${sc})`;
+      dbar.style.opacity   = gap.magnitude > 0.12 ? '1' : '0';
+    }
+
+    _prevPanel[id] = prev;
+  }
+}
+
+function setBar(id, reg, val, pct) {
+  const fill  = document.getElementById(`rf-${id}-${reg}`);
+  const label = document.getElementById(`rv-${id}-${reg}`);
+  if (fill)  fill.style.width = pct + '%';
+  // Show as percentage with unit — clear to viewer what scale means
+  if (label) label.textContent = pct + '%';
+}
+
+// ── Resonance system ───────────────────────────────────────
+let resonanceActive  = false;
+let resonanceTimer   = null;
+let lastResNodeId    = null;
+let lastResEntry     = null;
+// FIX: delay first resonance — give viewer 15s to orient
+let resonanceEligibleAfter = 0;
+
+function updateResonance(ts) {
+  if (resonanceEligibleAfter === 0) resonanceEligibleAfter = ts + 15000;
+  if (ts < resonanceEligibleAfter) return;
+
+  // Find node with largest gap
+  let maxMag = 0, maxId = null;
+  for (const id of Object.keys(NODES)) {
+    const { magnitude } = getGap(id);
+    if (magnitude > maxMag) { maxMag = magnitude; maxId = id; }
+  }
+  if (!maxId || maxMag < 0.18) { if (resonanceActive) hideResonance(); return; }
+
+  const entry = getResonanceEntry(maxId);
+  if (!entry) { if (resonanceActive) hideResonance(); return; }
+
+  // FIX: key on the entry itself, not just magnitude delta
+  if (entry === lastResEntry && resonanceActive) return;
+
+  lastResNodeId = maxId;
+  lastResEntry  = entry;
+  showResonance(maxId, entry);
+}
+
+function showResonance(id, entry) {
+  resonanceActive = true;
+  document.getElementById('resonance-node').textContent =
+    `${NODES[id].label} — historical parallel`;
+  document.getElementById('resonance-text').textContent = entry.text;
+  document.getElementById('resonance').classList.add('visible');
+  if (resonanceTimer) clearTimeout(resonanceTimer);
+  resonanceTimer = setTimeout(hideResonance, 16000);
+}
+
+function hideResonance() {
+  resonanceActive = false;
+  document.getElementById('resonance').classList.remove('visible');
+}
+
+// ── Synthetic drift ────────────────────────────────────────
+// Reflects current April 2026 conditions with plausible slow change.
+// Hormuz: physical near-zero, market extreme, sentiment rising.
+// Suez: elevated, secondary pressure from Hormuz overflow.
+// Panama: slow environmental ratchet, low public awareness.
+let dT = { hormuz: 0, suez: 30, panama: 60 };
+
+function syntheticDrift() {
+  dT.hormuz += 0.005;
+  dT.suez   += 0.006;
+  dT.panama += 0.007;
+
+  const h = STATE.hormuz;
+  // Physical: near-total closure — oscillates between 2–14%
+  h.flow      = clamp(0.06 + Math.sin(dT.hormuz * 0.38) * 0.08, 0.02, 0.14);
+  // Market: extreme and volatile — wide swings reflect Brent volatility
+  h.market    = clamp(0.91 + Math.sin(dT.hormuz * 1.1) * 0.10 + Math.sin(dT.hormuz * 2.7) * 0.04, 0.76, 0.99);
+  // Sentiment: slow upward drift with perceptible pulse
+  h.sentiment = clamp(h.sentiment + 0.00035 + Math.sin(dT.hormuz * 0.9) * 0.004, 0.46, 0.80);
+
+  const s = STATE.suez;
+  // Suez: elevated with visible oscillation
+  s.flow      = clamp(0.42 + Math.sin(dT.suez * 0.48) * 0.16, 0.22, 0.64);
+  s.market    = clamp(0.68 + Math.sin(dT.suez * 0.88) * 0.13 + Math.sin(dT.suez * 1.9) * 0.04, 0.48, 0.86);
+  s.sentiment = clamp(0.44 + Math.sin(dT.suez * 0.55) * 0.11, 0.30, 0.60);
+
+  const p = STATE.panama;
+  // Panama: slower, environmental — but still visibly moving
+  p.flow      = clamp(0.55 + Math.sin(dT.panama * 0.28) * 0.14, 0.36, 0.72);
+  p.market    = clamp(0.38 + Math.sin(dT.panama * 0.66) * 0.12, 0.22, 0.54);
+  p.sentiment = clamp(0.18 + Math.sin(dT.panama * 0.38) * 0.07, 0.09, 0.30);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DATA LAYER
+// ═══════════════════════════════════════════════════════════
+
+const priceHist = [];
+
+async function fetchCrude() {
+  try {
+    const url   = 'https://query1.finance.yahoo.com/v8/finance/chart/BZ%3DF?interval=5m&range=2h';
+    const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+    const res   = await fetch(proxy, { signal: AbortSignal.timeout(9000) });
+    const data  = await res.json();
+    const closes = data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close?.filter(Boolean);
+    if (!closes || closes.length < 3) return null;
+    closes.slice(-12).forEach(p => priceHist.push(p));
+    if (priceHist.length > 40) priceHist.splice(0, priceHist.length - 40);
+    const latest = closes[closes.length - 1];
+    // Normalise: $70 baseline = 0.0, $140 = 1.0 (covers expected range)
+    const norm = clamp((latest - 70) / 70, 0, 1);
+    let vol = 0;
+    for (let i = 1; i < Math.min(closes.length, 12); i++) {
+      vol += Math.abs(closes[i] - closes[i-1]) / closes[i-1];
+    }
+    vol = clamp(vol / 11 / 0.014, 0, 1);
+    return { latest, norm, vol };
+  } catch { return null; }
+}
+
+const SENT_KW = {
+  hormuz: ['hormuz','iran','persian gulf','oil closure','tanker attack','strait closed','irgc'],
+  suez:   ['suez canal','red sea shipping','houthi','cape of good hope','bab el-mandeb'],
+  panama: ['panama canal','canal drought','water level','vessel restriction','draught limit'],
+};
+const URGENCY = ['blockade','attack','closed','crisis','disruption','sanctions','seized','surge','halt','suspend'];
+
+async function fetchSentiment() {
+  const scores = { hormuz: 0, suez: 0, panama: 0 };
+  try {
+    const q     = encodeURIComponent('hormuz OR suez OR "panama canal"');
+    const gdelt = `https://api.gdeltproject.org/api/v2/doc/doc?query=${q}&mode=artlist&maxrecords=40&format=json&timespan=120min`;
+    const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(gdelt)}`;
+    const res   = await fetch(proxy, { signal: AbortSignal.timeout(9000) });
+    const data  = await res.json();
+    for (const art of (data?.articles || [])) {
+      const tx = ((art.title||'')+(art.seendescription||'')).toLowerCase();
+      for (const [id, kws] of Object.entries(SENT_KW)) {
+        const hit    = kws.some(k => tx.includes(k));
+        const urgent = URGENCY.some(k => tx.includes(k));
+        if (hit && urgent) scores[id] = Math.min(1, scores[id] + 0.16);
+        else if (hit)      scores[id] = Math.min(1, scores[id] + 0.06);
+      }
+    }
+  } catch {}
+  return scores;
+}
+
+async function fetchAll() {
+  setDind('FETCH', 'var(--resonance)');
+  let live = false;
+
+  const [crude, sent] = await Promise.all([fetchCrude(), fetchSentiment()]);
+
+  if (crude) {
+    live = true;
+    // Crude → market signal. Hormuz most exposed, Panama least.
+    STATE.hormuz.market = clamp(lerp(STATE.hormuz.market, crude.norm * 1.04 + crude.vol * 0.08, 0.28), 0, 1);
+    STATE.suez.market   = clamp(lerp(STATE.suez.market,   crude.norm * 0.74 + crude.vol * 0.14, 0.22), 0, 1);
+    STATE.panama.market = clamp(lerp(STATE.panama.market, crude.norm * 0.44,                    0.14), 0, 1);
+  }
+
+  if (sent) {
+    for (const id of Object.keys(NODES)) {
+      const incoming = sent[id];
+      if (incoming > 0.04) {
+        live = true;
+        // FIX: proper blend — incoming signal sets a target, existing state decays toward it
+        // Prevents sticky upward bias from accumulation
+        const target = clamp(incoming * 0.75, 0, 1);
+        STATE[id].sentiment = clamp(lerp(STATE[id].sentiment, target, 0.22), 0, 1);
+      } else {
+        // FIX: when no signal, decay toward node-specific baseline
+        const baseline = { hormuz: 0.50, suez: 0.40, panama: 0.16 }[id];
+        STATE[id].sentiment = lerp(STATE[id].sentiment, baseline, 0.008);
+      }
+    }
+  }
+
+  setDind(live ? 'LIVE' : 'MODEL', live ? 'var(--market)' : 'var(--ink3)');
+}
+
+function setDind(text, color) {
+  const el = document.getElementById('dind');
+  if (el) { el.textContent = text; el.style.color = color; }
+}
+
+// ── Focused node ───────────────────────────────────────────
+let focusedNode = null;
+
+function setFocus(id) {
+  focusedNode = focusedNode === id ? null : id;
+  // Update panel active states
+  for (const nid of Object.keys(NODES)) {
+    const panel = document.getElementById(`panel-${nid}`);
+    if (panel) panel.classList.toggle('panel-focused', nid === focusedNode);
+  }
+  // Trigger resonance immediately for focused node if gap is significant
+  if (focusedNode) {
+    const entry = getResonanceEntry(focusedNode);
+    if (entry) showResonance(focusedNode, entry);
+  }
+}
+
+// ── Clock ──────────────────────────────────────────────────
+function updateClock() {
+  const d = new Date();
+  document.getElementById('clock').textContent =
+    d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit', second:'2-digit' }) +
+    ' · ' + d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── Boot ───────────────────────────────────────────────────
+window.addEventListener('resize', () => { resize(); });
+
+setTimeout(() => {
+  // Seed ghost store with offset initial states so traces are
+  // visible immediately rather than waiting 90+ seconds
+  for (const id of Object.keys(NODES)) {
+    const a = ANIM[id];
+    // Three past states: simulate widening gap for Hormuz,
+    // stable-ish for Suez, mild drift for Panama
+    const offsets = [
+      { p: 0.06, m: 0.06, s: -0.08 }, // oldest: 3 mins ago
+      { p: 0.04, m: 0.03, s: -0.04 }, // middle: 90s ago
+      { p: 0.02, m: 0.01, s: -0.02 }, // newest: just before now
+    ];
+    offsets.forEach(off => {
+      const snap = {
+        p: clamp(a.p + off.p, 0, 1),
+        m: clamp(a.m + off.m, 0, 1),
+        s: clamp(a.s + off.s, 0, 1),
+      };
+      snap.magnitude = Math.abs(snap.s - snap.p);
+      GHOSTS[id].push(snap);
+    });
+  }
+
+  // Panel click handlers
+  for (const id of Object.keys(NODES)) {
+    const panel = document.getElementById(`panel-${id}`);
+    if (panel) panel.addEventListener('click', () => setFocus(id));
+  }
+
+  // Canvas click — hit-test node positions
+  overlay.style.pointerEvents = 'auto';
+  overlay.addEventListener('click', e => {
+    const rect = overlay.getBoundingClientRect();
+    const cx = (e.clientX - rect.left);
+    const cy = (e.clientY - rect.top);
+    let hit = null;
+    for (const id of Object.keys(NODES)) {
+      const { x, y } = nodeScreen(id);
+      const dist = Math.hypot(cx - x, cy - y);
+      if (dist < 40) { hit = id; break; }
+    }
+    if (hit) setFocus(hit);
+  });
+
+  resize();
+  requestAnimationFrame(tick);
+  fetchAll();
+  setInterval(fetchAll, 10 * 60 * 1000);
+}, 200);
+</script>
+</body>
+</html>
