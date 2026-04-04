@@ -57,7 +57,7 @@ html, body {
 #hdr-title em { font-style: italic; color: var(--ink2); }
 #hdr-sub {
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 10px;              /* raised from 9 */
   color: var(--ink3);
   margin-top: 5px;
   letter-spacing: 0.08em;
@@ -66,13 +66,13 @@ html, body {
 #hdr-right { text-align: right; flex-shrink: 0; }
 #clock {
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 10px;              /* raised from 9 */
   color: var(--ink3);
   letter-spacing: 0.06em;
 }
 #data-ind {
   font-family: var(--mono);
-  font-size: 8px;
+  font-size: 9px;               /* raised from 8 */
   color: var(--ink3);
   margin-top: 3px;
 }
@@ -83,7 +83,7 @@ html, body {
   display: flex;
   gap: 20px;
   padding: 11px 0;
-  border-bottom: 0.5px solid var(--border);
+  border-bottom: 0.5px solid var(--border2);
   align-items: center;
   flex-wrap: wrap;
 }
@@ -92,7 +92,7 @@ html, body {
   align-items: center;
   gap: 7px;
   font-family: var(--mono);
-  font-size: 8px;
+  font-size: 9px;               /* raised from 8 */
   color: var(--ink3);
   text-transform: uppercase;
   letter-spacing: 0.07em;
@@ -103,10 +103,10 @@ html, body {
   text-transform: none;
   letter-spacing: 0;
   font-family: var(--serif);
-  font-size: 8.5px;
+  font-size: 9.5px;             /* raised from 8.5 */
 }
 .key-swatch {
-  width: 10px; height: 10px;
+  width: 11px; height: 11px;   /* slightly larger */
   flex-shrink: 0;
 }
 .key-swatch.physical  { background: var(--physical);  opacity: 0.75; border-radius: 50%; }
@@ -116,7 +116,7 @@ html, body {
 #gap-key {
   margin-left: auto;
   font-family: var(--mono);
-  font-size: 8px;
+  font-size: 9px;               /* raised from 8 */
   color: var(--ink3);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -145,8 +145,8 @@ html, body {
 #resonance {
   position: absolute;
   bottom: 0; left: 0; right: 0;
-  padding: 16px 22px 14px;
-  background: linear-gradient(transparent, rgba(237,234,222,0.97) 32%);
+  padding: 18px 24px 16px;
+  background: linear-gradient(transparent, rgba(237,234,222,0.98) 28%);
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.6s ease;
@@ -154,24 +154,23 @@ html, body {
 #resonance.visible { opacity: 1; }
 #resonance-node {
   font-family: var(--mono);
-  font-size: 7.5px;
+  font-size: 8.5px;             /* raised from 7.5 */
   color: var(--ink3);
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
 }
 #resonance-text {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 11px;              /* raised from 10 */
   color: var(--ink2);
-  line-height: 1.7;
+  line-height: 1.75;
   white-space: pre-line;
-  max-width: 600px;
+  max-width: 640px;
 }
 /* First line of signal text — configuration, darker */
 #resonance-text::first-line {
   color: var(--ink);
-  font-size: 10px;
 }
 
 /* ── Panels ── */
@@ -184,8 +183,8 @@ html, body {
 @media (max-width: 620px) { #panels { grid-template-columns: 1fr; } }
 
 .panel {
-  background: white;
-  border: 0.5px solid var(--border);
+  background: var(--bg);          /* change 4: warm parchment, not white */
+  border: 0.5px solid var(--border2);
   border-left: 3px solid transparent;
   border-radius: 6px;
   padding: 14px 16px;
@@ -194,9 +193,9 @@ html, body {
   cursor: pointer;
   transition: border-color 0.25s, border-left-color 0.25s, box-shadow 0.25s;
 }
-.panel:hover { border-color: var(--border2); }
+.panel:hover { border-color: rgba(28,26,22,0.32); }
 .panel.panel-focused {
-  box-shadow: 0 2px 20px rgba(28,26,22,0.08);
+  box-shadow: 0 2px 24px rgba(28,26,22,0.10);
 }
 .panel.panel-focused .panel-name { color: var(--ink); }
 #overlay { cursor: pointer; }
@@ -214,7 +213,7 @@ html, body {
 
 /* Panel name — dimmed by default, lifts on focus */
 .panel-name {
-  font-size: 11px;
+  font-size: 13px;              /* change 1: 11 → 13 */
   font-weight: 700;
   letter-spacing: -0.01em;
   margin-bottom: 2px;
@@ -223,36 +222,30 @@ html, body {
 }
 .panel-region {
   font-family: var(--mono);
-  font-size: 7.5px;
+  font-size: 8.5px;             /* change 1: 7.5 → 8.5 */
   color: var(--ink3);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-bottom: 10px;
+  margin-bottom: 11px;
 }
 
 /* 1 — CLASSIFICATION: leads the reading */
 .panel-gap-line {
-  margin-bottom: 10px;
-  padding-bottom: 9px;
-  border-bottom: 0.5px solid var(--border);
+  margin-bottom: 11px;
+  padding-bottom: 10px;
+  border-bottom: 0.5px solid var(--border2);
 }
 .gap-state {
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 11px;              /* change 1: 9 → 11 */
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--ink);
-  line-height: 1.3;
+  letter-spacing: 0.10em;
+  color: var(--ink);            /* overridden by JS to semantic colour */
+  line-height: 1.35;
   transition: color 0.6s;
 }
-.gap-subtext {
-  font-family: var(--mono);
-  font-size: 7px;
-  color: var(--ink3);
-  margin-top: 3px;
-  line-height: 1.55;
-  min-height: 11px;
-}
+/* gap-subtext removed — explanatory text eliminated */
+.gap-subtext { display: none; }
 /* Rate micro-label — secondary within classification */
 .gap-state .rate {
   text-transform: none;
@@ -260,43 +253,81 @@ html, body {
   opacity: 0.65;
 }
 
+/* Duration indicator — categorical, subtle */
+.gap-duration {
+  font-family: var(--mono);
+  font-size: 8px;               /* change 1: 7 → 8 */
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-top: 5px;
+  opacity: 0.7;
+}
+
+/* Consequence anchor — Hormuz only, typographically outside data structure */
+.consequence-anchor {
+  font-family: var(--serif);
+  font-size: 12px;              /* change 1: 11 → 12 */
+  color: var(--ink);            /* change 2: ink2 → ink, gives it more presence */
+  line-height: 1.6;
+  padding-top: 11px;
+  margin-bottom: 8px;
+  border-top: 0.5px solid var(--border2);
+  font-style: normal;
+}
+
 /* 2 — DATA: register bars */
 .panel-registers {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 10px;
+  gap: 8px;                     /* change 3: 6 → 8, more breathing room */
+  margin-bottom: 11px;
 }
 .reg-row {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
 }
 .reg-label {
   font-family: var(--mono);
-  font-size: 7px;
-  color: var(--ink3);
+  font-size: 8px;               /* change 1: 7 → 8 */
+  color: var(--ink2);           /* change 3: ink3 → ink2, coloured by JS */
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  width: 36px;
+  letter-spacing: 0.10em;
+  width: 38px;
   flex-shrink: 0;
 }
 .reg-track {
   flex: 1;
-  height: 2px;
-  background: var(--border);
-  border-radius: 1px;
+  height: 3px;                  /* change 3: 2 → 3px */
+  background: rgba(28,26,22,0.12); /* change 3: slightly more visible track */
+  border-radius: 2px;
+  position: relative;
 }
 .reg-fill {
   height: 100%;
-  border-radius: 1px;
+  border-radius: 2px;
   transition: width 1.4s cubic-bezier(0.4,0,0.2,1);
+  position: relative;
+}
+/* change 3: end-cap dot at current value position */
+.reg-fill::after {
+  content: '';
+  position: absolute;
+  right: -2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: inherit;
+  opacity: 0.85;
 }
 .reg-val {
   font-family: var(--mono);
-  font-size: 7.5px;
-  color: var(--ink3);
-  width: 30px;
+  font-size: 9px;               /* change 1: 7.5 → 9 */
+  color: var(--ink2);
+  width: 32px;
   text-align: right;
   flex-shrink: 0;
 }
@@ -304,19 +335,19 @@ html, body {
 /* 3 — INTERPRETATION: annotation, subordinate */
 .panel-gap-statement {
   font-style: italic;
-  font-size: 10px;
+  font-size: 10.5px;            /* change 1: 10 → 10.5 */
   color: var(--ink3);
-  line-height: 1.5;
-  padding-top: 8px;
-  border-top: 0.5px solid var(--border);
+  line-height: 1.55;
+  padding-top: 9px;
+  border-top: 0.5px solid var(--border2);
   transition: color 0.6s;
 }
 
 /* ── Footer ── */
 #footer {
-  margin-top: 16px;
-  padding-top: 12px;
-  border-top: 0.5px solid var(--border);
+  margin-top: 18px;
+  padding-top: 13px;
+  border-top: 0.5px solid var(--border2);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -325,17 +356,17 @@ html, body {
 }
 #footer-note {
   font-family: var(--mono);
-  font-size: 7.5px;
+  font-size: 9px;               /* raised from 7.5 */
   color: var(--ink3);
-  line-height: 1.8;
+  line-height: 1.85;
   max-width: 600px;
 }
 #footer-meta {
   font-family: var(--mono);
-  font-size: 7.5px;
+  font-size: 9px;               /* raised from 7.5 */
   color: var(--ink3);
   text-align: right;
-  line-height: 1.8;
+  line-height: 1.85;
   white-space: nowrap;
 }
 </style>
@@ -479,6 +510,7 @@ html, body {
     <div class="panel-gap-line">
       <div class="gap-state" id="gs-hormuz"></div>
       <div class="gap-subtext" id="gsub-hormuz"></div>
+      <div class="gap-duration" id="gd-hormuz"></div>
     </div>
     <div class="panel-registers">
       <div class="reg-row">
@@ -497,6 +529,8 @@ html, body {
         <span class="reg-val" id="rv-hormuz-s"></span>
       </div>
     </div>
+    <!-- Consequence anchor: human-scale translation of Flow value -->
+    <div class="consequence-anchor" id="ca-hormuz"></div>
     <div class="panel-gap-statement" id="stmt-hormuz"></div>
   </div>
 
@@ -507,6 +541,7 @@ html, body {
     <div class="panel-gap-line">
       <div class="gap-state" id="gs-suez"></div>
       <div class="gap-subtext" id="gsub-suez"></div>
+      <div class="gap-duration" id="gd-suez"></div>
     </div>
     <div class="panel-registers">
       <div class="reg-row">
@@ -535,6 +570,7 @@ html, body {
     <div class="panel-gap-line">
       <div class="gap-state" id="gs-panama"></div>
       <div class="gap-subtext" id="gsub-panama"></div>
+      <div class="gap-duration" id="gd-panama"></div>
     </div>
     <div class="panel-registers">
       <div class="reg-row">
@@ -554,15 +590,16 @@ html, body {
       </div>
     </div>
     <div class="panel-gap-statement" id="stmt-panama"></div>
+  </div>
 
 </div>
 
 <div id="footer">
   <div id="footer-note">
-    Three registers are tracked simultaneously at each chokepoint. <em>Flow</em> reflects actual transit volume and physical constraint (0 = closed, 100 = fully open). <em>Market</em> reflects price and war-risk insurance signals as a forward-looking proxy — markets price expected disruption before it fully materialises. <em>Felt</em> reflects collective public sentiment derived from news volume and narrative spread — typically the slowest of the three to move. The gap between Flow and Felt is the primary signal: when physical reality is severe but collective awareness has not yet registered it, the system surfaces a comparable historical moment.
+    Three registers are tracked simultaneously at each chokepoint. <em>Flow</em> reflects actual transit volume and physical constraint (0 = closed, 100 = fully open). <em>Market</em> reflects price and shipping signals as a forward-looking proxy. <em>Felt</em> reflects collective public sentiment derived from news volume and narrative spread. The gap between Flow and Felt is the primary signal. When significant, the system shows its configuration and the channel through which it is most likely to become visible in daily life. Sources: Brent Crude · Baltic Dry Index · GDELT · Panama Canal Authority Gatun Lake level · MarineTraffic vessel density (keyed) · Freightos Baltic Index (keyed). Data indicator shows active live sources.
   </div>
   <div id="footer-meta">
-    Undertow v1.1 · live data where available<br>
+    Undertow v1.3 · flow model v1.3 · live data where available<br>
     A project in the Animal Spirits lineage
   </div>
 </div>
@@ -573,7 +610,7 @@ html, body {
 'use strict';
 
 // ═══════════════════════════════════════════════════════════
-//  UNDERTOW v1.1
+//  UNDERTOW v1.3
 //  Material flows · Market signal · Collective sentiment
 //  A project in the Animal Spirits lineage
 // ═══════════════════════════════════════════════════════════
@@ -596,22 +633,27 @@ const NODES = {
 };
 
 // ── State ──────────────────────────────────────────────────
-// flow:      0 = closed/broken, 1 = fully open
+// flow:      0 = closed/broken, 1 = fully open (see FLOW calibration above)
 // market:    0 = calm baseline, 1 = extreme stress signal
 // sentiment: 0 = unregistered publicly, 1 = peak collective awareness
+//
+//  Initial flow values are grounded in current physical conditions (Apr 2026):
+//  Hormuz: ~1–2 mb/d through Larak toll route = 5–8% of 20 mb/d normal → 0.06
+//  Suez:   ~48% of 2023 peak, ~29 vessels/day vs 60 at full = 0.48
+//  Panama: ~31/38 vessels/day post-drought recovery, dry season onset → 0.78
 const STATE = {
   hormuz: {
-    flow:      0.06,  // near-total closure since late Feb 2026
-    market:    0.91,  // Brent ~$126, war-risk premiums at historic highs
+    flow:      0.06,  // near-total closure; IRGC toll route only (~1–2 mb/d)
+    market:    0.91,  // Brent ~$110–119, war-risk premiums historic highs
     sentiment: 0.52,  // spreading but still lagging physical reality
   },
   suez: {
-    flow:      0.42,  // reduced — receiving Hormuz rerouting pressure
+    flow:      0.48,  // ~48% of 2023 peak; Houthi risk + Hormuz crisis overflow
     market:    0.68,  // elevated freight rates, reroute cost premium
     sentiment: 0.44,  // moderate — secondary story vs Hormuz
   },
   panama: {
-    flow:      0.55,  // partial — ongoing drought-related draught restrictions
+    flow:      0.78,  // post-drought recovery: ~31/day, dry season onset slight drag
     market:    0.38,  // moderate — freight rate adjustment for bulk
     sentiment: 0.18,  // low — bulk/grain routes are not visible to consumers
   },
@@ -620,8 +662,8 @@ const STATE = {
 // Smoothed display state (what canvas reads each frame)
 const ANIM = {
   hormuz: { p: 0.06, m: 0.91, s: 0.52 },
-  suez:   { p: 0.42, m: 0.68, s: 0.44 },
-  panama: { p: 0.55, m: 0.38, s: 0.18 },
+  suez:   { p: 0.48, m: 0.68, s: 0.44 },
+  panama: { p: 0.78, m: 0.38, s: 0.18 },
 };
 
 // ── Ghost store — directional traces ──────────────────────
@@ -727,41 +769,27 @@ function getGap(id) {
 }
 
 function gapStatement(id) {
-  const { psGap, msGap, magnitude } = getGap(id);
+  const { psGap, magnitude } = getGap(id);
 
+  // Four plain-language states. Rate (widening/closing) appended separately.
   if (magnitude < 0.10) return {
     text: "Physical reality and collective awareness are broadly aligned.",
-    color: 'var(--ink3)', state: "Aligned", sub: "",
+    color: 'var(--ink3)',
+    state: "Aligned",
   };
-  if (psGap < -0.45) return {
-    text: "The disruption is severe but most people have not yet felt it. The distance between what is happening and what is registered is at its widest.",
-    color: 'var(--diverge)',
-    state: "Physical reality far ahead",
-    sub: msGap > 0.18 ? "Markets have priced this in. Public awareness has not." : "Sentiment is beginning to follow.",
-  };
-  if (psGap < -0.22) return {
-    text: "Physical conditions are significantly worse than collective sentiment reflects. Markets have adjusted; awareness is catching up.",
-    color: 'var(--diverge)',
-    state: "Awareness lagging",
-    sub: "Expect sentiment to follow as effects reach consumers.",
-  };
-  if (psGap < -0.10) return {
-    text: "A moderate gap between physical constraint and public awareness. Normal lag for disruptions insulated from daily life.",
-    color: 'var(--ink2)', state: "Mild lag", sub: "",
-  };
-  if (psGap > 0.38) return {
-    text: "Collective fear is running well ahead of the physical reality. Sentiment may correct as conditions stabilise — or the fear itself may reshape behaviour.",
-    color: 'var(--resonance)',
-    state: "Fear ahead of facts",
-    sub: "Watch for sentiment correction or physical conditions catching up.",
-  };
-  if (psGap > 0.18) return {
-    text: "Public concern is ahead of current physical constraint — anticipatory. Behaviour may be changing before conditions fully warrant it.",
-    color: 'var(--ink2)', state: "Anticipatory", sub: "",
-  };
+  if (psGap < 0) {
+    // Physical ahead of awareness — reality worse than felt
+    return {
+      text: "Physical conditions are worse than collective awareness reflects.",
+      color: magnitude > 0.30 ? 'var(--diverge)' : 'var(--ink2)',
+      state: "Reality ahead of awareness",
+    };
+  }
+  // Sentiment ahead of physical — felt experience exceeds reality
   return {
-    text: "Registers are converging.",
-    color: 'var(--ink3)', state: "Converging", sub: "",
+    text: "Collective concern is running ahead of the physical conditions.",
+    color: magnitude > 0.30 ? 'var(--resonance)' : 'var(--ink2)',
+    state: "Awareness ahead of reality",
   };
 }
 
@@ -806,7 +834,7 @@ function tick(ts) {
   t += 0.014; // faster clock — more visible motion
   const now = ts || 0;
 
-  syntheticDrift();
+  updateFlowModel(now);
 
   // Lerp speeds lifted — changes register within seconds not minutes
   // Flow: slow but perceptible  Market: fast  Sentiment: medium
@@ -933,21 +961,24 @@ function drawNode(id) {
   const { psGap, magnitude } = getGap(id);
 
   // ── Flow layer (physical) ──────────────────────────────
-  // Circle. Dense when open, almost absent when closed.
-  const physR = 7 + a.p * 26;
-  const physA = 0.12 + a.p * 0.52;
+  // DATA CONFIDENCE: continuous value from getDataConfidence(id)
+  // decays with age of last anchor signal (48h halflife).
+  // High confidence → crisp core, tighter halo (observed data)
+  // Low confidence  → wider diffuse halo, lower opacity (modelled)
+  const physR      = 7 + a.p * 26;
+  const confidence = getDataConfidence(id);
+  const physA      = 0.09 + a.p * 0.40 + confidence * 0.15;
+  const haloMult   = 3.2 - confidence * 0.8; // 3.2 (unanchored) → 2.4 (freshly anchored)
 
-  // Outer diffusion halo
-  const g1 = ctx.createRadialGradient(x, y, 0, x, y, physR * 2.4);
+  const g1 = ctx.createRadialGradient(x, y, 0, x, y, physR * haloMult);
   g1.addColorStop(0,   `rgba(42,74,58,${physA * 0.65})`);
   g1.addColorStop(0.5, `rgba(42,74,58,${physA * 0.25})`);
   g1.addColorStop(1,   `rgba(42,74,58,0)`);
   ctx.beginPath();
-  ctx.arc(x, y, physR * 2.4, 0, Math.PI * 2);
+  ctx.arc(x, y, physR * haloMult, 0, Math.PI * 2);
   ctx.fillStyle = g1;
   ctx.fill();
 
-  // Solid core
   ctx.beginPath();
   ctx.arc(x, y, physR, 0, Math.PI * 2);
   ctx.fillStyle = `rgba(42,74,58,${physA})`;
@@ -1084,19 +1115,7 @@ function drawNode(id) {
     }
   }
 
-  // Secondary: market-to-sentiment connection when they diverge
-  const msDiff = Math.abs(a.m - a.s);
-  if (msDiff > 0.22) {
-    const msA = clamp((msDiff - 0.22) / 0.5, 0, 0.35);
-    ctx.beginPath();
-    ctx.moveTo(mx, my);
-    ctx.lineTo(sx, sy);
-    ctx.strokeStyle = `rgba(80,58,136,${msA})`;
-    ctx.setLineDash([1, 5]);
-    ctx.lineWidth = 0.5;
-    ctx.stroke();
-    ctx.setLineDash([]);
-  }
+  // M-S connection line removed — visual noise, competed with primary gap signal
 
   // ── Focus ring ─────────────────────────────────────────
   // Solid ring — positive focus signal, not just dimming of others.
@@ -1156,17 +1175,51 @@ function drawRoutes() {
   ctx.stroke();
 }
 
+// ── Duration seeds — editorially set, reflecting actual conditions ─
+// Three categories: Recent (<2 weeks), Sustained (2–8 weeks), Prolonged (>8 weeks)
+// Updated manually when underlying situation changes materially.
+const DURATION = {
+  hormuz: 'Prolonged',  // closure since late Feb 2026 — 5+ weeks
+  suez:   'Sustained',  // Houthi disruption ongoing, Hormuz overflow
+  panama: 'Sustained',  // drought restrictions across multiple seasons
+};
+
+// ── Consequence anchor — Hormuz only ──────────────────────
+// Updates dynamically based on current Flow value.
+// Physical calibration: Flow=1.0 → 20 mb/d, 138 vessels/day (EIA 2025)
+// Single sentence translating % into human-scale implication.
+function consequenceAnchor(flowPct) {
+  // Flow <8%: near-total blockade. IRGC toll route + shadow fleet only.
+  // ~1–2 mb/d getting through (China/India/Pakistan-flagged permitted vessels).
+  if (flowPct <= 8) {
+    return "Around 20 million barrels of oil transit here daily in normal conditions. At current levels, roughly 1–2 million barrels are moving — mostly to China and India via the IRGC toll route.";
+  }
+  // Flow 9–30%: severe but partial disruption. Multiple nations permitted.
+  // ~2–6 mb/d. Analogous to OPEC embargo levels of supply loss.
+  if (flowPct <= 30) {
+    return "Only a fraction of normal oil and gas volumes are transiting — roughly 2–6 million barrels per day. The shortfall reaches energy prices and food supply chains within weeks.";
+  }
+  // Flow 31–60%: significant reduction. ~6–12 mb/d.
+  // Comparable to losing all of Saudi Arabia's export volume.
+  if (flowPct <= 60) {
+    return "Transit is significantly below normal — around 6–12 million barrels per day. Oil and LNG shortfalls are working through into fuel and energy prices globally.";
+  }
+  // Flow 61–85%: below normal but recovering. ~12–17 mb/d.
+  if (flowPct <= 85) {
+    return "Flow is below normal but recovering — around 12–17 million barrels per day. Some disruption to oil and LNG supply remains, keeping energy prices elevated.";
+  }
+  // Flow >85%: near normal. ~17–20 mb/d. Minor residual constraint.
+  return "Transit volumes are approaching normal — around 17–20 million barrels per day. Oil and LNG flow through the strait is broadly restored.";
+}
+
 // ── Panel updates (throttled) ─────────────────────────────
-// Cache previous values to avoid unnecessary DOM writes
 const _prevPanel = {};
 
 function updatePanels() {
   for (const id of Object.keys(NODES)) {
-    const a = ANIM[id];
+    const a    = ANIM[id];
     const stmt = gapStatement(id);
     const gap  = getGap(id);
-
-    // Only update DOM elements when value has meaningfully changed (>1%)
     const prev = _prevPanel[id] || {};
 
     const pPct = Math.round(a.p * 100);
@@ -1177,22 +1230,40 @@ function updatePanels() {
     if (mPct !== prev.m) { setBar(id, 'm', a.m, mPct); prev.m = mPct; }
     if (sPct !== prev.s) { setBar(id, 's', a.s, sPct); prev.s = sPct; }
 
-    // Rate of change — derived from ghost delta
-    const { label: rateLabel, direction } = getRate(id);
+    // Rate of change
+    const { label: rateLabel } = getRate(id);
 
     if (stmt.state !== prev.state || rateLabel !== prev.rateLabel) {
       const gsEl   = document.getElementById(`gs-${id}`);
-      const gsubEl = document.getElementById(`gsub-${id}`);
       const stmtEl = document.getElementById(`stmt-${id}`);
-      // Compose gap state: "Awareness lagging · widening"
+      // Compose: "Reality ahead of awareness · widening"
       const stateText = rateLabel
         ? `${stmt.state} · ${rateLabel}`
         : stmt.state;
-      if (gsEl)   { gsEl.textContent = stateText; gsEl.style.color = stmt.color; }
-      if (gsubEl)   gsubEl.textContent = stmt.sub;
-      if (stmtEl) { stmtEl.textContent = stmt.text; stmtEl.style.color = stmt.color; }
+      // Gap state label: never ink3 (too faint for primary reading). Aligned → ink2.
+      const gsColor   = stmt.color === 'var(--ink3)' ? 'var(--ink2)' : stmt.color;
+      // Statement: semantic when divergent, ink3 when aligned (subordinate)
+      const stmtColor = stmt.color === 'var(--ink3)' ? 'var(--ink3)' : stmt.color;
+      if (gsEl)   { gsEl.textContent = stateText; gsEl.style.color = gsColor; }
+      if (stmtEl) { stmtEl.textContent = stmt.text; stmtEl.style.color = stmtColor; }
       prev.state     = stmt.state;
       prev.rateLabel = rateLabel;
+    }
+
+    // Duration indicator — seeded, only set once
+    if (!prev.durationSet) {
+      const gdEl = document.getElementById(`gd-${id}`);
+      if (gdEl) gdEl.textContent = DURATION[id] || '';
+      prev.durationSet = true;
+    }
+
+    // Consequence anchor — Hormuz only, updates with flow value
+    if (id === 'hormuz') {
+      if (pPct !== prev.anchorPct) {
+        const caEl = document.getElementById('ca-hormuz');
+        if (caEl) caEl.textContent = consequenceAnchor(pPct);
+        prev.anchorPct = pPct;
+      }
     }
 
     // Diverge bar
@@ -1271,45 +1342,368 @@ function hideResonance() {
   document.getElementById('resonance').classList.remove('visible');
 }
 
-// ── Synthetic drift ────────────────────────────────────────
-// Reflects current April 2026 conditions with plausible slow change.
-// Hormuz: physical near-zero, market extreme, sentiment rising.
-// Suez: elevated, secondary pressure from Hormuz overflow.
-// Panama: slow environmental ratchet, low public awareness.
-let dT = { hormuz: 0, suez: 30, panama: 60 };
+// ═══════════════════════════════════════════════════════════
+//  FLOW MODEL v1.3 — Composite event-informed model
+//
+//  Flow(node) = clamp(1 - constraint - event, floor, ceiling)
+//
+//  v1.1 improvements: plateau decay, constraint hardening, confidence
+//       anchoring, injectConstraint, Panama seasonality
+//  v1.2 refinements: exponential confidence decay, bidirectional anchoring,
+//       hardening guard, Panama seasonality on constraint
+//  v1.3 calibration: parameters grounded in physical throughput ranges
+//       Hormuz: Flow=1.0→20 mb/d, 138 vessels/day (EIA/IEA 2025)
+//       Suez:   Flow=1.0→~60 vessels/day, 1.6 Bn tons/year (2023 record)
+//       Panama: Flow=1.0→38 vessels/day (ACP max), Flow=0.47→18/day (drought floor)
+//       Suez-Hormuz coupling corrected: direction was wrong (now slightly positive)
+//       Suez floor raised to 0.28, Panama floor raised to 0.47, ceiling to 0.85
+//       Panama constraint reset to 0.18 (post-drought residual, not active drought)
+// ═══════════════════════════════════════════════════════════
 
-function syntheticDrift() {
-  dT.hormuz += 0.005;
-  dT.suez   += 0.006;
-  dT.panama += 0.007;
+// ── Flow components per node ───────────────────────────────
+//
+//  PHYSICAL CALIBRATION (v1.3):
+//  Flow values are grounded in real-world throughput. Anchors:
+//
+//  HORMUZ  Flow=1.0 → 20–21 mb/d, ~138 vessels/day (EIA/IEA 2025 baseline)
+//          Flow=0.5 → ~10 mb/d, ~70 vessels/day
+//          Flow=0.0 → physical closure (no commercial transit)
+//          Current (Apr 2026): selective blockade, IRGC toll route ~1–2 mb/d
+//          → ~5–10% of normal → Flow ≈ 0.05–0.08. computeFlow=0.06. ✓
+//          Constraint=0.88 → ~88% of normal traffic blocked (UANI: "95% non-Iranian
+//          transit down" — some permitted nations partially offset this)
+//          Event=0.06 → residual Larak Island toll-route + IRGC-permitted vessels
+//          Floor=0.05 → shadow fleet + China/India/Pakistan permitted = ~1 mb/d min
+//          Ceiling=0.92 → geopolitical ceiling even under peace (OPEC+ cuts, etc.)
+//          ConstrFloor=0.10 → persistent geography/politics; strait never fully
+//          unconstrained (historical normal excludes Iranian sanctions baseline)
+//
+//  SUEZ    Flow=1.0 → ~60 vessels/day, 1.6 Bn tons/year (2023 record: 26,434 vessels)
+//          Flow=0.5 → ~30 vessels/day
+//          Flow=0.0 → canal physically inoperable (hypothetical — war damage, etc.)
+//          Current (Apr 2026): ~48% of 2023 peak per yrules.com/SCA data
+//          → Flow ≈ 0.48. Target: 1 - 0.28 - 0.18 = 0.54, less coupling ≈ 0.42–0.48 ✓
+//          Constraint=0.28 → structural Houthi/war-risk baseline (~28% premium,
+//          insurance withdrawn for major carriers, permanent rerouting established)
+//          Event=0.18 → residual active risk in Red Sea approach, ongoing carrier
+//          suspensions (Maersk, CMA CGM still avoiding as of Apr 2026)
+//          Floor=0.28 → minimum viable: some tankers/bulkers still transit, Cape
+//          alternative keeps floor from reaching zero — equivalent to ~17 vessels/day
+//          Ceiling=0.82 → SCA structural max under current conditions; pre-Houthi
+//          ceiling was higher but carrier contracts now assume Cape as default
+//          ConstrFloor=0.08 → permanent post-Houthi structural residual (insurance
+//          reclassification, rerouting infrastructure now established)
+//
+//  PANAMA  Flow=1.0 → 38 vessels/day, 50ft draught (ACP maximum capacity)
+//          Flow=0.5 → ~19 vessels/day (worst drought: 18/day in Feb 2024)
+//          Flow=0.0 → hypothetical complete lake depletion / canal closure
+//          Current (Apr 2026): dry season onset. Post-recovery: ~31/day reported
+//          in mid-2025 (Lloyd's List Jul 2025), ACP confirmed 50ft draught maintained.
+//          31/38 = 0.82 → but April is dry season start, slight drag expected.
+//          Target: 1 - 0.18 = 0.82 → seasonal drift toward ~0.37 constraint. ✓
+//          Constraint=0.18 → post-drought structural residual: LNG/bulker traffic
+//          has not fully returned (neopanamax LNG avg 4/month vs 26 pre-drought),
+//          draught-sensitive segments permanently rerouted via Cape
+//          Event=0.0 → purely environmental, no acute event component
+//          Floor=0.47 → ~18 vessels/day (worst recorded drought, Feb 2024).
+//          47% of 38-vessel max. Previous floor=0.42 was too aggressive.
+//          Ceiling=0.85 → 38 vessels ≈ 85% of theoretical 45-vessel ACP target
+//          capacity (ACP aimed for 97/day by 2023 but that was never achieved;
+//          practical max is ~38–40 vessels at full water, hence ceiling < 1.0)
+//          ConstrFloor=0.12 → climate-structural floor: drought recurrence likely
+//          in dry seasons even with good rainy seasons; LNG traffic loss is permanent
+//
+const FLOW = {
+  hormuz: {
+    constraint:    0.88,    // ~88% of traffic blocked by IRGC selective closure
+    event:         0.06,    // residual Larak toll route + permitted-nation passage
+    eventDecay:    0.00018, // per tick-second — slow (conflict self-sustains)
+    recovery:      0.00010, // asymmetric: very slow reopening (geopolitical, not physical)
+    floor:         0.05,    // ~1 mb/d min: shadow fleet + China/India/Pakistan passage
+    ceiling:       0.92,    // geopolitical ceiling; even at peace ~18–19 mb/d not 21
+    constraintFloor: 0.10,  // sanctions + geography → permanent partial constraint
+  },
+  suez: {
+    constraint:    0.28,    // structural: Houthi baseline + major carrier withdrawal
+    event:         0.18,    // active Red Sea approach risk, ongoing carrier suspensions
+    eventDecay:    0.00028, // faster than Hormuz — security risk not kinetic conflict
+    recovery:      0.00018,
+    floor:         0.28,    // ~17 vessels/day: tankers/bulkers still transiting
+    ceiling:       0.82,    // structural ceiling post-Houthi (Cape now default for majors)
+    constraintFloor: 0.08,  // post-Houthi residual: insurance reclassification permanent
+  },
+  panama: {
+    constraint:    0.18,    // post-drought residual: LNG/bulker loss, not acute drought
+    event:         0.0,     // no acute event — purely environmental
+    eventDecay:    0.00008,
+    recovery:      0.00010,
+    floor:         0.47,    // ~18 vessels/day (Feb 2024 drought worst case; 18/38=0.47)
+    ceiling:       0.85,    // practical ACP max ~38–40 vessels (not the 97-vessel target)
+    constraintFloor: 0.12,  // climate-structural: drought recurrence + permanent LNG loss
+  },
+};
 
+// ── 1. Plateau thresholds — event decay shape ──────────────
+// Above plateau: conflict self-sustains, decay is very slow
+// Below plateau: minor disruption resolves faster
+// Reflects: active conflicts hold; insurance incidents resolve
+const PLATEAU = { hormuz: 0.72, suez: 0.32, panama: 0.04 };
+
+function decayEvent(nodeId, dt) {
+  const f = FLOW[nodeId];
+  const abovePlateau = f.event > PLATEAU[nodeId];
+  // Above plateau: 85% slower decay (conflict is self-sustaining)
+  // Below plateau: 80% faster decay (minor disruptions resolve)
+  const rate = abovePlateau
+    ? f.eventDecay * 0.15
+    : f.eventDecay * 1.8;
+  f.event = Math.max(0, f.event - rate * dt * 60);
+}
+
+// ── 2. Constraint hardening and softening ─────────────────
+// Prolonged high-event conditions harden constraint:
+// insurers raise requirements, operators reroute permanently
+// Hardening rate ≈ 1% per day of sustained disruption
+// Softening is 3× slower than hardening (structural change is sticky)
+// Guard: event must exceed an absolute minimum (0.05) before hardening fires —
+// prevents near-zero event noise from ratcheting constraint upward.
+function updateConstraint(nodeId, dt) {
+  const f = FLOW[nodeId];
+  const plateau = PLATEAU[nodeId];
+  const sustainedDisruption = f.event > plateau * 0.8 && f.event > 0.05;
+  if (sustainedDisruption) {
+    // Sustained disruption: constraint hardens
+    const hardenRate = 0.000010; // ~1% per day
+    f.constraint = Math.min(f.constraint + hardenRate * dt * 60, 0.95);
+  } else {
+    // Event easing: constraint softens slowly toward node floor
+    const softenRate = 0.0000033; // ~0.3% per day — 3× slower
+    f.constraint = Math.max(
+      f.constraint - softenRate * dt * 60,
+      f.constraintFloor
+    );
+  }
+}
+
+// ── 3. Confidence-weighted external anchoring ──────────────
+// Maps observed flow signals → implied constraint/event adjustments
+// External data never sets flow directly — it pulls components
+// Confidence: 0.15 (monthly report) → 0.85 (live AIS)
+// lastAnchoredAt tracks recency; confidence decays over 48h
+const lastAnchoredAt = { hormuz: 0, suez: 0, panama: 0 };
+const ANCHOR_HALFLIFE_MS = 48 * 60 * 60 * 1000; // 48 hours
+
+function getDataConfidence(nodeId) {
+  // Exponential halflife decay — not linear.
+  // At t=0: 1.0. At t=48h: 0.5. At t=96h: 0.25. Floor: 0.2.
+  // Never anchored (lastAnchoredAt=0) → age is very large → confidence floors at 0.2.
+  const age = Date.now() - (lastAnchoredAt[nodeId] || 0);
+  return Math.max(0.2, Math.exp(-age / (ANCHOR_HALFLIFE_MS / Math.LN2)));
+}
+
+function anchorFlow(nodeId, observedFlow, signalConfidence) {
+  const f = FLOW[nodeId];
+  const current = computeFlow(nodeId);
+  const delta = observedFlow - current;
+  // Only anchor when signal meaningfully disagrees (>5% delta)
+  if (Math.abs(delta) < 0.05) return;
+
+  // Negative delta: observed lower than model → event understated → increase event
+  // Positive delta: observed higher than model → constraint overstated → ease constraint
+  // Split the adjustment: event absorbs acute disagreement, constraint absorbs structural
+  const adjustment = delta * signalConfidence * 0.12;
+  if (delta < 0) {
+    // Model too optimistic — reinforce event component
+    f.event = clamp(f.event - adjustment, 0, 0.95);
+  } else {
+    // Model too pessimistic — gently ease constraint (structural loosening)
+    // Use half the adjustment weight — constraint changes slowly by design
+    f.constraint = clamp(f.constraint - adjustment * 0.5, f.constraintFloor, 0.95);
+  }
+  lastAnchoredAt[nodeId] = Date.now();
+}
+
+// Compute current flow from components (without applying to STATE)
+function computeFlow(nodeId) {
+  const f = FLOW[nodeId];
+  return clamp(1.0 - f.constraint - f.event, f.floor, f.ceiling);
+}
+
+// ── 4. Event and constraint injection ─────────────────────
+// injectEvent: acute disruption (conflict, attack, closure announcement)
+// injectConstraint: structural change (exclusion zone, sanctions, minelaying)
+function injectEvent(nodeId, intensity, type) {
+  const f = FLOW[nodeId];
+  if (!f) return;
+  const cap = (type === 'closure' || type === 'conflict') ? 0.95 : 0.45;
+  f.event = clamp(f.event + intensity, 0, cap);
+  // Conflict/closure events also tighten constraint — they harden the system
+  if (type === 'closure' || type === 'conflict') {
+    f.constraint = clamp(f.constraint + intensity * 0.25, 0, 0.95);
+  }
+}
+
+function injectConstraint(nodeId, delta) {
+  // For acute structural changes — exclusion zones, confirmed minelaying,
+  // declared sovereignty claims. Produces immediate flow drop independent
+  // of event decay. Use sparingly — editorial, not algorithmic.
+  const f = FLOW[nodeId];
+  if (!f) return;
+  f.constraint = clamp(f.constraint + delta, f.constraintFloor, 0.95);
+}
+
+// ── 5. Panama calendar-grounded seasonal constraint ────────
+// Rainy season Apr–Nov: water levels recover, constraint eases
+// Dry season Dec–Mar: water levels drop, constraint tightens
+// Applied to constraint directly — this is a structural environmental shift,
+// not a transient event. Rate is slow (2× slower than event recovery) so
+// seasonal transitions are gradual and don't produce visible step changes.
+const PANAMA_SEASONAL_RATE = 0.000005; // per tick-second — slow structural drift
+
+function panamaSeasonalTarget() {
+  const month = new Date().getMonth(); // 0=Jan, 11=Dec
+  // Rainy season centred on August (month 7), dry on February (month 1)
+  // Target constraint: rainy=0.12 (floor, Aug peak), dry=0.26 (drought-risk max, Feb)
+  // Physical calibration: 0.12 constraint → Flow ≈ 0.85 (full rainy season recovery)
+  //                       0.26 constraint → Flow ≈ 0.74 (dry season, ~28 vessels/day)
+  //                       > 0.26 requires injectConstraint for acute drought conditions
+  const angle = ((month - 7) / 12) * Math.PI * 2;
+  const normalised = (1 - Math.sin(angle)) / 2; // 0=wet, 1=dry
+  return FLOW.panama.constraintFloor + normalised * 0.14; // 0.12 → 0.26
+}
+
+function applyPanamaSeasonality(dt) {
+  const target = panamaSeasonalTarget();
+  const f = FLOW.panama;
+  // Drift constraint toward seasonal target — but respect Gatun anchoring
+  // Only move if not recently anchored (confidence-gated)
+  const confidence = getDataConfidence('panama');
+  // Lower confidence → more seasonal influence (no live data to override it)
+  const rate = PANAMA_SEASONAL_RATE * (1.2 - confidence * 0.4) * dt * 60;
+  if (f.constraint < target) {
+    f.constraint = Math.min(f.constraint + rate, target);
+  } else {
+    f.constraint = Math.max(f.constraint - rate, target);
+  }
+}
+
+// ── Flow model tick ────────────────────────────────────────
+let lastFlowTick = 0;
+
+function updateFlowModel(now) {
+  const dt = Math.min((now - lastFlowTick) / 1000, 0.1);
+  if (dt <= 0) return;
+  lastFlowTick = now;
+
+  // ── Hormuz ──────────────────────────────────────────────
+  // Event-dominated. Plateau logic holds closure.
+  // Constraint hardens while event is sustained above plateau.
+  decayEvent('hormuz', dt);
+  updateConstraint('hormuz', dt);
+  const hormuzTarget = clamp(
+    computeFlow('hormuz') + FLOW.hormuz.recovery * dt * 60,
+    FLOW.hormuz.floor, FLOW.hormuz.ceiling
+  );
+  const hDelta = hormuzTarget - STATE.hormuz.flow;
+  const hRate  = hDelta < 0 ? 0.08 : 0.012; // fast decline, slow recovery
+  STATE.hormuz.flow = clamp(
+    STATE.hormuz.flow + hDelta * hRate,
+    FLOW.hormuz.floor, FLOW.hormuz.ceiling
+  );
+
+  // ── Suez ────────────────────────────────────────────────
+  // Rerouting-coupled to Hormuz — but direction matters.
+  // Hormuz closure does NOT suppress Suez: Asian-bound tankers stranded
+  // in Gulf cannot reach Suez. Remaining Suez traffic is container/bulk
+  // on Europe-Asia routes, which faces its own Houthi/insurance constraint.
+  // Coupling effect: Hormuz closure drives some Europe-Asia container
+  // traffic BACK to Suez (Cape alternative becomes congested). Net effect
+  // is a small positive: ~5% of the Hormuz closure restores to Suez.
+  // This is capped and small — Suez's constraint is primarily its own.
+  decayEvent('suez', dt);
+  updateConstraint('suez', dt);
+  const hormuzCoupling = (1 - STATE.hormuz.flow) * 0.05; // small positive coupling
+  const suezBase   = computeFlow('suez') + hormuzCoupling; // hormuz closure slightly lifts suez
+  const suezTarget = clamp(
+    suezBase + FLOW.suez.recovery * dt * 60,
+    FLOW.suez.floor, FLOW.suez.ceiling
+  );
+  const sDelta = suezTarget - STATE.suez.flow;
+  const sRate  = sDelta < 0 ? 0.05 : 0.018; // smoother than Hormuz
+  STATE.suez.flow = clamp(
+    STATE.suez.flow + sDelta * sRate,
+    FLOW.suez.floor, FLOW.suez.ceiling
+  );
+
+  // ── Panama ──────────────────────────────────────────────
+  // Constraint-dominated. Calendar-grounded seasonal variation applied
+  // directly to constraint (structural, not transient).
+  // Constraint evolves slowly — drought ratchet + seasonal drift.
+  decayEvent('panama', dt);
+  updateConstraint('panama', dt);
+  applyPanamaSeasonality(dt);
+  const panamaTarget = clamp(
+    computeFlow('panama') + FLOW.panama.recovery * dt * 60,
+    FLOW.panama.floor, FLOW.panama.ceiling
+  );
+  const pDelta = panamaTarget - STATE.panama.flow;
+  const pRate  = 0.018; // lifted from 0.008 — more responsive to constraint change
+  STATE.panama.flow = clamp(
+    STATE.panama.flow + pDelta * pRate,
+    FLOW.panama.floor, FLOW.panama.ceiling
+  );
+
+  // ── Market and sentiment drift ──────────────────────────
   const h = STATE.hormuz;
-  // Physical: near-total closure — oscillates between 2–14%
-  h.flow      = clamp(0.06 + Math.sin(dT.hormuz * 0.38) * 0.08, 0.02, 0.14);
-  // Market: extreme and volatile — wide swings reflect Brent volatility
-  h.market    = clamp(0.91 + Math.sin(dT.hormuz * 1.1) * 0.10 + Math.sin(dT.hormuz * 2.7) * 0.04, 0.76, 0.99);
-  // Sentiment: slow upward drift with perceptible pulse
-  h.sentiment = clamp(h.sentiment + 0.00035 + Math.sin(dT.hormuz * 0.9) * 0.004, 0.46, 0.80);
+  h.market    = clamp(lerp(h.market,    0.91, 0.005), 0.78, 0.99);
+  h.sentiment = clamp(lerp(h.sentiment, 0.62, 0.0008), 0.46, 0.80);
 
   const s = STATE.suez;
-  // Suez: elevated with visible oscillation
-  s.flow      = clamp(0.42 + Math.sin(dT.suez * 0.48) * 0.16, 0.22, 0.64);
-  s.market    = clamp(0.68 + Math.sin(dT.suez * 0.88) * 0.13 + Math.sin(dT.suez * 1.9) * 0.04, 0.48, 0.86);
-  s.sentiment = clamp(0.44 + Math.sin(dT.suez * 0.55) * 0.11, 0.30, 0.60);
+  s.market    = clamp(lerp(s.market,    0.65, 0.004), 0.48, 0.84);
+  s.sentiment = clamp(lerp(s.sentiment, 0.44, 0.003), 0.30, 0.60);
 
   const p = STATE.panama;
-  // Panama: slower, environmental — but still visibly moving
-  p.flow      = clamp(0.55 + Math.sin(dT.panama * 0.28) * 0.14, 0.36, 0.72);
-  p.market    = clamp(0.38 + Math.sin(dT.panama * 0.66) * 0.12, 0.22, 0.54);
-  p.sentiment = clamp(0.18 + Math.sin(dT.panama * 0.38) * 0.07, 0.09, 0.30);
+  p.market    = clamp(lerp(p.market,    0.36, 0.003), 0.24, 0.52);
+  p.sentiment = clamp(lerp(p.sentiment, 0.18, 0.002), 0.09, 0.30);
 }
 
 // ═══════════════════════════════════════════════════════════
-//  DATA LAYER
+//  DATA LAYER  v1.2
+//  Sources:
+//    LIVE:     Yahoo Finance — Brent Crude (BZ=F), Baltic Dry (^BDI)
+//    LIVE:     GDELT — news sentiment per chokepoint
+//    LIVE:     Panama Canal Authority — Gatun Lake water level CSV
+//    KEYED:    MarineTraffic — vessel density per strait (add key below)
+//    KEYED:    Freightos FBX — container freight rates (add key below)
 // ═══════════════════════════════════════════════════════════
 
-const priceHist = [];
+// ── API keys — add yours here when available ───────────────
+const KEYS = {
+  marinetraffic: '',   // MarineTraffic API key — from marinetraffic.com/en/p/api-services
+  freightos:     '',   // Freightos terminal key — email data@freightos.com for access
+};
 
+// ── Source status tracking ─────────────────────────────────
+const SOURCES = {
+  brent:          { live: false, label: 'Brent' },
+  bdi:            { live: false, label: 'BDI'   },
+  gdelt:          { live: false, label: 'GDELT' },
+  gatun:          { live: false, label: 'Gatun' },
+  marinetraffic:  { live: false, label: 'MT'    },
+  freightos:      { live: false, label: 'FBX'   },
+};
+
+function updateSourceDisplay() {
+  const active = Object.values(SOURCES).filter(s => s.live).map(s => s.label);
+  const text = active.length ? active.join(' · ') : 'MODEL';
+  const color = active.length ? 'var(--market)' : 'var(--ink3)';
+  setDind(text, color);
+}
+
+const priceHist = [];
+const bdiHist   = [];
+
+// ── 1. Brent Crude — market signal (all nodes) ────────────
 async function fetchCrude() {
   try {
     const url   = 'https://query1.finance.yahoo.com/v8/finance/chart/BZ%3DF?interval=5m&range=2h';
@@ -1321,17 +1715,49 @@ async function fetchCrude() {
     closes.slice(-12).forEach(p => priceHist.push(p));
     if (priceHist.length > 40) priceHist.splice(0, priceHist.length - 40);
     const latest = closes[closes.length - 1];
-    // Normalise: $70 baseline = 0.0, $140 = 1.0 (covers expected range)
+    // Normalise: $70 = 0.0, $140 = 1.0
     const norm = clamp((latest - 70) / 70, 0, 1);
     let vol = 0;
     for (let i = 1; i < Math.min(closes.length, 12); i++) {
       vol += Math.abs(closes[i] - closes[i-1]) / closes[i-1];
     }
     vol = clamp(vol / 11 / 0.014, 0, 1);
+    SOURCES.brent.live = true;
     return { latest, norm, vol };
-  } catch { return null; }
+  } catch {
+    SOURCES.brent.live = false;
+    return null;
+  }
 }
 
+// ── 2. Baltic Dry Index — shipping demand proxy ────────────
+// BDI reflects global dry bulk demand. Low = slack demand/overcapacity.
+// High = strong demand, potential congestion signal.
+// Normalise: 400 = floor (very low), 4000 = ceiling (very high).
+async function fetchBDI() {
+  try {
+    const url   = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EBDI?interval=1d&range=10d';
+    const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+    const res   = await fetch(proxy, { signal: AbortSignal.timeout(9000) });
+    const data  = await res.json();
+    const closes = data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close?.filter(Boolean);
+    if (!closes || closes.length < 2) return null;
+    closes.forEach(v => bdiHist.push(v));
+    if (bdiHist.length > 20) bdiHist.splice(0, bdiHist.length - 20);
+    const latest  = closes[closes.length - 1];
+    const norm    = clamp((latest - 400) / 3600, 0, 1);
+    // Rate of change — rising BDI = tightening market
+    const prev    = closes[Math.max(0, closes.length - 6)];
+    const trend   = (latest - prev) / prev; // positive = rising
+    SOURCES.bdi.live = true;
+    return { latest, norm, trend };
+  } catch {
+    SOURCES.bdi.live = false;
+    return null;
+  }
+}
+
+// ── 3. GDELT — news sentiment per chokepoint ──────────────
 const SENT_KW = {
   hormuz: ['hormuz','iran','persian gulf','oil closure','tanker attack','strait closed','irgc'],
   suez:   ['suez canal','red sea shipping','houthi','cape of good hope','bab el-mandeb'],
@@ -1356,42 +1782,187 @@ async function fetchSentiment() {
         else if (hit)      scores[id] = Math.min(1, scores[id] + 0.06);
       }
     }
-  } catch {}
+    SOURCES.gdelt.live = Object.values(scores).some(v => v > 0);
+  } catch {
+    SOURCES.gdelt.live = false;
+  }
   return scores;
 }
 
+// ── 4. Panama Canal — Gatun Lake water level ──────────────
+// Direct CSV from ACP public dashboard.
+// Normalise: 79ft (drought critical) = 0.0, 89ft (normal) = 1.0
+// This is the most direct physical constraint metric for Panama.
+async function fetchGatun() {
+  try {
+    const csvUrl = 'https://evtms-rpts.pancanal.com/eng/h2o/gatunWL.csv';
+    const proxy  = `https://api.allorigins.win/raw?url=${encodeURIComponent(csvUrl)}`;
+    const res    = await fetch(proxy, { signal: AbortSignal.timeout(9000) });
+    const text   = await res.text();
+    if (!text || text.length < 10) return null;
+    // CSV format: date, level (ft)
+    const lines = text.trim().split('\n').filter(l => l.trim());
+    const last  = lines[lines.length - 1];
+    const parts = last.split(',');
+    const level = parseFloat(parts[1]);
+    if (isNaN(level)) return null;
+    // 79ft = drought critical (0.0), 89ft = full normal (1.0)
+    const norm = clamp((level - 79) / 10, 0, 1);
+    SOURCES.gatun.live = true;
+    return { level, norm };
+  } catch {
+    SOURCES.gatun.live = false;
+    return null;
+  }
+}
+
+// ── 5. MarineTraffic — vessel density at straits ──────────
+// Chokepoint bounding boxes (lat/lon)
+const MT_BOXES = {
+  hormuz: { latmin: 25.5, latmax: 27.5, lonmin: 55.5, lonmax: 59.5 },
+  suez:   { latmin: 29.5, latmax: 32.5, lonmin: 31.0, lonmax: 33.5 },
+  panama: { latmin:  8.5, latmax:  9.5, lonmin:-80.0, lonmax:-79.0 },
+};
+// Normal vessel counts (approx) at each chokepoint — for normalisation
+const MT_NORMAL = { hormuz: 180, suez: 80, panama: 40 };
+
+async function fetchMarineTraffic() {
+  if (!KEYS.marinetraffic) return null;
+  const results = {};
+  for (const [id, box] of Object.entries(MT_BOXES)) {
+    try {
+      const url = `https://services.marinetraffic.com/api/exportVessels/${KEYS.marinetraffic}`
+        + `?v=8&msgtype=simple&protocol=jsono`
+        + `&minlat=${box.latmin}&maxlat=${box.latmax}`
+        + `&minlon=${box.lonmin}&maxlon=${box.lonmax}`;
+      const res  = await fetch(url, { signal: AbortSignal.timeout(9000) });
+      const data = await res.json();
+      const count = Array.isArray(data) ? data.length : 0;
+      // Normalise: 0 vessels = 0.0, normal count = 0.6, 2× normal = 1.0
+      results[id] = clamp(count / (MT_NORMAL[id] * 1.5), 0, 1);
+    } catch { results[id] = null; }
+  }
+  const anyLive = Object.values(results).some(v => v !== null);
+  SOURCES.marinetraffic.live = anyLive;
+  return anyLive ? results : null;
+}
+
+// ── 6. Freightos FBX — container freight rates ────────────
+// FBX13: China → Mediterranean (Suez-sensitive)
+// FBX11: China → North Europe (Suez-sensitive)
+// FBX01: China → NA West Coast (Panama-sensitive)
+// Normalise: $1000/FEU = 0.0 (low), $6000/FEU = 1.0 (very high)
+// Scaffold — activate when you have Freightos data access
+async function fetchFreightos() {
+  if (!KEYS.freightos) return null;
+  try {
+    // Freightos does not expose a standard REST endpoint —
+    // contact data@freightos.com for CSV/API access.
+    // Structure below is illustrative pending their response.
+    const url = `https://api.freightos.com/fbx/latest?key=${KEYS.freightos}`;
+    const res  = await fetch(url, { signal: AbortSignal.timeout(9000) });
+    const data = await res.json();
+    // Expected shape: { FBX13: 3200, FBX11: 2800, FBX01: 2100 }
+    const suezRate   = data?.FBX13 || data?.FBX11 || null;
+    const panamaRate = data?.FBX01 || null;
+    if (!suezRate && !panamaRate) return null;
+    const suezNorm   = suezRate   ? clamp((suezRate   - 1000) / 5000, 0, 1) : null;
+    const panamaNorm = panamaRate ? clamp((panamaRate - 1000) / 5000, 0, 1) : null;
+    SOURCES.freightos.live = true;
+    return { suez: suezNorm, panama: panamaNorm };
+  } catch {
+    SOURCES.freightos.live = false;
+    return null;
+  }
+}
+
+// ── Master fetch ───────────────────────────────────────────
 async function fetchAll() {
   setDind('FETCH', 'var(--resonance)');
-  let live = false;
 
-  const [crude, sent] = await Promise.all([fetchCrude(), fetchSentiment()]);
+  const [crude, bdi, sent, gatun, mt, fbx] = await Promise.all([
+    fetchCrude(),
+    fetchBDI(),
+    fetchSentiment(),
+    fetchGatun(),
+    fetchMarineTraffic(),
+    fetchFreightos(),
+  ]);
 
+  // ── Apply Brent crude → market signal ───────────────────
   if (crude) {
-    live = true;
-    // Crude → market signal. Hormuz most exposed, Panama least.
+    // Hormuz: fully oil-exposed. Suez: mixed. Panama: minimal oil dependency.
     STATE.hormuz.market = clamp(lerp(STATE.hormuz.market, crude.norm * 1.04 + crude.vol * 0.08, 0.28), 0, 1);
-    STATE.suez.market   = clamp(lerp(STATE.suez.market,   crude.norm * 0.74 + crude.vol * 0.14, 0.22), 0, 1);
-    STATE.panama.market = clamp(lerp(STATE.panama.market, crude.norm * 0.44,                    0.14), 0, 1);
+    STATE.suez.market   = clamp(lerp(STATE.suez.market,   crude.norm * 0.65 + crude.vol * 0.12, 0.22), 0, 1);
+    STATE.panama.market = clamp(lerp(STATE.panama.market, crude.norm * 0.35,                    0.14), 0, 1);
   }
 
+  // ── Apply BDI → supplement market signal (Suez, Panama) ─
+  if (bdi) {
+    STATE.suez.market   = clamp(lerp(STATE.suez.market,   bdi.norm * 0.45, 0.12), 0, 1);
+    STATE.panama.market = clamp(lerp(STATE.panama.market, bdi.norm * 0.55, 0.18), 0, 1);
+    // Rising BDI signals tightening bulk demand — tightens Suez event component slightly
+    if (bdi.trend > 0.02) {
+      FLOW.suez.event = clamp(FLOW.suez.event + bdi.trend * 0.02, 0, 0.35);
+    }
+  }
+
+  // ── Apply GDELT sentiment + reinforce flow model events ──
   if (sent) {
     for (const id of Object.keys(NODES)) {
       const incoming = sent[id];
       if (incoming > 0.04) {
         live = true;
-        // FIX: proper blend — incoming signal sets a target, existing state decays toward it
-        // Prevents sticky upward bias from accumulation
         const target = clamp(incoming * 0.75, 0, 1);
         STATE[id].sentiment = clamp(lerp(STATE[id].sentiment, target, 0.22), 0, 1);
+        // Strong news signal reinforces flow model event component —
+        // prevents event decay from erasing conditions that are still active
+        if (incoming > 0.25) {
+          const type = id === 'hormuz' ? 'conflict'
+                     : id === 'suez'   ? 'reroute'
+                     : 'environmental';
+          injectEvent(id, incoming * 0.06, type);
+        }
       } else {
-        // FIX: when no signal, decay toward node-specific baseline
         const baseline = { hormuz: 0.50, suez: 0.40, panama: 0.16 }[id];
         STATE[id].sentiment = lerp(STATE[id].sentiment, baseline, 0.008);
       }
     }
   }
 
-  setDind(live ? 'LIVE' : 'MODEL', live ? 'var(--market)' : 'var(--ink3)');
+  // ── Apply Gatun water level → Panama flow anchor ────────
+  // Gatun water level is a high-confidence direct physical signal for Panama.
+  // Signal confidence: 0.55 (daily official ACP data, well-calibrated)
+  // Converts water level to implied flow, then anchors via anchorFlow.
+  if (gatun) {
+    live = true;
+    // norm=1 (89ft) → ~72% flow (ceiling); norm=0 (79ft) → ~42% flow (floor)
+    const impliedFlow = FLOW.panama.floor + gatun.norm * (FLOW.panama.ceiling - FLOW.panama.floor);
+    anchorFlow('panama', impliedFlow, 0.55);
+  }
+
+  // ── Apply MarineTraffic vessel density → flow anchor ─────
+  // Live AIS is the highest-confidence flow signal available.
+  // Signal confidence: 0.85 (live vessel count, real-time)
+  if (mt) {
+    for (const [id, density] of Object.entries(mt)) {
+      if (density !== null) {
+        live = true;
+        SOURCES.marinetraffic.live = true;
+        anchorFlow(id, density, 0.85);
+      }
+    }
+  }
+
+  // ── Apply Freightos FBX → market signal ─────────────────
+  // Container freight rates are the most direct market signal for Suez/Panama.
+  // When available, supplement the crude-derived market signal.
+  if (fbx) {
+    if (fbx.suez   !== null) STATE.suez.market   = clamp(lerp(STATE.suez.market,   fbx.suez,   0.35), 0, 1);
+    if (fbx.panama !== null) STATE.panama.market = clamp(lerp(STATE.panama.market, fbx.panama, 0.35), 0, 1);
+  }
+
+  updateSourceDisplay();
 }
 
 function setDind(text, color) {
@@ -1466,6 +2037,9 @@ setTimeout(() => {
       GHOSTS[id].push(snap);
     });
   }
+
+  // Seed flow model timestamp to avoid first-tick dt spike
+  lastFlowTick = performance.now();
 
   // Panel click handlers
   for (const id of Object.keys(NODES)) {
