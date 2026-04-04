@@ -829,21 +829,83 @@ const PANEL_UPDATE_INTERVAL = 200;
 function lerp(a, b, k) { return a + (b - a) * k; }
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
+// ── 1. Resistant lerp — values that hold, then give way ───────────
+// Standard lerp produces smooth deceleration: reads as simulation.
+// This version holds near target until delta exceeds threshold,
+// then moves — release feels slightly more abrupt than expected.
+function resistantLerp(current, target, k, threshold = 0.008) {
+  const delta = target - current;
+  if (Math.abs(delta) < threshold) return current; // holds position
+  const resistance = 1 - Math.exp(-Math.abs(delta) * 4);
+  return current + delta * k * resistance;
+}
+
+// ── 2. Biased noise — persistent micro-variation per register ──────
+// Noise biased toward direction of current travel: trends feel
+// self-reinforcing; reversals feel slightly harder to start.
+const NOISE = {
+  hormuz: { p: 0, m: 0, s: 0 },
+  suez:   { p: 0, m: 0, s: 0 },
+  panama: { p: 0, m: 0, s: 0 },
+};
+
+function updateNoise(id, dt) {
+  const n  = NOISE[id];
+  const a  = ANIM[id];
+  const st = STATE[id];
+  const regs = { p: 'flow', m: 'market', s: 'sentiment' };
+  for (const [reg, key] of Object.entries(regs)) {
+    const bias = Math.sign(st[key] - a[reg]) * 0.06;
+    n[reg] += (Math.random() - 0.48 + bias) * 0.003 * dt * 60;
+    n[reg] *= 0.92; // slow decay — persists ~10 frames
+    n[reg]  = clamp(n[reg], -0.025, 0.025);
+  }
+}
+
+// ── 4. Sentiment pressure accumulator — holds then snaps ──────────
+// Collective sentiment doesn't ease continuously — it holds, then
+// shifts more decisively than smooth lerp would suggest.
+const SENT_PRESSURE = { hormuz: 0, suez: 0, panama: 0 };
+
+function updateSentiment(id) {
+  const a      = ANIM[id];
+  const target = STATE[id].sentiment;
+  const delta  = target - a.s;
+  SENT_PRESSURE[id] += delta * 0.15;
+  SENT_PRESSURE[id] *= 0.88; // pressure decays slowly
+  if (Math.abs(SENT_PRESSURE[id]) > 0.018) {
+    a.s = clamp(a.s + SENT_PRESSURE[id] * 0.22, 0, 1);
+    SENT_PRESSURE[id] *= 0.65; // bleed off after snap
+  }
+  // Tiny baseline drift — prevents complete stillness
+  a.s = clamp(a.s + delta * 0.004, 0, 1);
+}
+
 function tick(ts) {
   requestAnimationFrame(tick);
-  t += 0.014; // faster clock — more visible motion
+  t += 0.022; // lifted: drives visible motion at usable rates
   const now = ts || 0;
 
   updateFlowModel(now);
 
-  // Lerp speeds lifted — changes register within seconds not minutes
-  // Flow: slow but perceptible  Market: fast  Sentiment: medium
+  // 1. Resistant lerp — flow and market hold near target, then give way
+  // 2. Biased noise — market and sentiment flicker with motivated uncertainty
+  // 4. Sentiment pressure — holds, then snaps
   for (const id of Object.keys(NODES)) {
-    const s = STATE[id];
-    const a = ANIM[id];
-    a.p = lerp(a.p, s.flow,      0.028);
-    a.m = lerp(a.m, s.market,    0.048);
-    a.s = lerp(a.s, s.sentiment, 0.034);
+    const s  = STATE[id];
+    const a  = ANIM[id];
+    const dt = 0.016; // nominal frame dt for noise scaling
+    // Flow: resistant, no noise (physical — doesn't flicker)
+    a.p = resistantLerp(a.p, s.flow,   0.028, 0.010);
+    // Market: resistant, moderate noise
+    a.m = resistantLerp(a.m, s.market, 0.048, 0.004);
+    // Sentiment: pressure-based snap (replaces lerp entirely)
+    updateSentiment(id);
+    // Apply noise — market noisier than flow, sentiment noisiest
+    updateNoise(id, dt);
+    a.p = clamp(a.p + NOISE[id].p * 0.6,  0, 1); // subtle on flow
+    a.m = clamp(a.m + NOISE[id].m * 1.4,  0, 1); // clear on market
+    a.s = clamp(a.s + NOISE[id].s * 1.8,  0, 1); // most on sentiment
   }
 
   render();
@@ -853,7 +915,6 @@ function tick(ts) {
     updateSignal();
     lastPanelUpdate = now;
   }
-  // Sample ghost states on real-time interval
   sampleGhosts(now);
 }
 
@@ -960,15 +1021,17 @@ function drawNode(id) {
   const a = ANIM[id];
   const { psGap, magnitude } = getGap(id);
 
-  // ── Flow layer (physical) ──────────────────────────────
-  // DATA CONFIDENCE: continuous value from getDataConfidence(id)
-  // decays with age of last anchor signal (48h halflife).
-  // High confidence → crisp core, tighter halo (observed data)
-  // Low confidence  → wider diffuse halo, lower opacity (modelled)
-  const physR      = 7 + a.p * 26;
+  // ── Per-node phase offsets — prevents all nodes breathing in sync ──
+  const phase = { hormuz: 0, suez: 2.1, panama: 4.4 }[id];
+
+  // ── Flow layer (physical) ──────────────────────────────────────────
   const confidence = getDataConfidence(id);
-  const physA      = 0.09 + a.p * 0.40 + confidence * 0.15;
-  const haloMult   = 3.2 - confidence * 0.8; // 3.2 (unanchored) → 2.4 (freshly anchored)
+  const haloMult   = 3.2 - confidence * 0.8;
+
+  // Breathing: slow sinusoid ±6% of radius, independent per node
+  const breathe   = 1 + Math.sin(t * 0.55 + phase) * 0.06;
+  const physR     = (7 + a.p * 26) * breathe;
+  const physA     = 0.09 + a.p * 0.40 + confidence * 0.15;
 
   const g1 = ctx.createRadialGradient(x, y, 0, x, y, physR * haloMult);
   g1.addColorStop(0,   `rgba(42,74,58,${physA * 0.65})`);
@@ -984,77 +1047,101 @@ function drawNode(id) {
   ctx.fillStyle = `rgba(42,74,58,${physA})`;
   ctx.fill();
 
-  // Orbiting particles — vessels in transit
-  // FIX: count reflects actual flow; near-zero flow = almost no particles
+  // ── Orbiting particles ─────────────────────────────────────────────
   if (a.p > 0.08) {
-    const nP = Math.max(1, Math.floor(a.p * 7));
+    // Normal transit — particles orbit proportional to flow
+    const nP = Math.max(1, Math.floor(a.p * 9));
     for (let pi = 0; pi < nP; pi++) {
-      const angle = t * (0.35 + pi * 0.09) + (pi / nP) * Math.PI * 2;
-      const oR = physR * (1.35 + pi * 0.14);
+      const angle = t * (0.55 + pi * 0.07) + (pi / nP) * Math.PI * 2;
+      const oR    = physR * (1.3 + pi * 0.12);
+      const pA    = 0.35 + a.p * 0.40;
       ctx.beginPath();
-      ctx.arc(x + Math.cos(angle) * oR, y + Math.sin(angle) * oR, 1.1, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(42,74,58,${0.28 + a.p * 0.32})`;
+      ctx.arc(x + Math.cos(angle) * oR, y + Math.sin(angle) * oR, 1.4, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(42,74,58,${pA})`;
       ctx.fill();
     }
+  } else {
+    // Near-closed state — slow counter-clockwise drift of 2 faint particles
+    // signals blockage rather than absence
+    for (let pi = 0; pi < 2; pi++) {
+      const angle = -(t * 0.18) + pi * Math.PI;
+      const oR    = physR * 1.8;
+      ctx.beginPath();
+      ctx.arc(x + Math.cos(angle) * oR, y + Math.sin(angle) * oR, 1.2, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(42,74,58,0.22)`;
+      ctx.fill();
+    }
+    // Stalled ring — shows where transit should be
+    ctx.beginPath();
+    ctx.arc(x, y, physR * 1.6, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(42,74,58,0.10)`;
+    ctx.setLineDash([2, 5]);
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+    ctx.setLineDash([]);
   }
 
-  // ── Market layer ────────────────────────────────────────
-  // Rounded rectangle. Cool blue. Offset upper-right.
-  // Inherits Animal Spirits visual grammar directly.
-  const mR  = 6 + a.m * 20;
-  const mA  = 0.16 + a.m * 0.52;
-  // FIX: offsets proportional to canvas size, not fixed pixels
-  const mx  = x + W * 0.022;
-  const my  = y - H * 0.035;
+  // ── Market layer ───────────────────────────────────────────────────
+  // Slow rotation of the rounded rect — market is always in motion
+  const mR     = 6 + a.m * 22;
+  const mA     = 0.18 + a.m * 0.55;
+  const mx     = x + W * 0.022;
+  const my     = y - H * 0.035;
+  // Subtle oscillation: slight scale pulse keyed to market value
+  const mBreath = 1 + Math.sin(t * 0.72 + phase + 1.2) * 0.045;
+  const mRb     = mR * mBreath;
+  const mRotate = t * 0.18 + phase; // slow rotation
 
-  const g2 = ctx.createRadialGradient(mx, my, 0, mx, my, mR * 2.2);
+  const g2 = ctx.createRadialGradient(mx, my, 0, mx, my, mRb * 2.4);
   g2.addColorStop(0,   `rgba(26,58,106,${mA * 0.55})`);
   g2.addColorStop(0.4, `rgba(26,58,106,${mA * 0.18})`);
   g2.addColorStop(1,   `rgba(26,58,106,0)`);
   ctx.beginPath();
-  ctx.arc(mx, my, mR * 2.2, 0, Math.PI * 2);
+  ctx.arc(mx, my, mRb * 2.4, 0, Math.PI * 2);
   ctx.fillStyle = g2;
   ctx.fill();
 
-  // Rounded rect core
-  const cr = mR * 0.28;
+  // Rounded rect core — rotated
+  ctx.save();
+  ctx.translate(mx, my);
+  ctx.rotate(mRotate);
+  const cr = mRb * 0.28;
   ctx.beginPath();
-  ctx.moveTo(mx - mR + cr, my - mR);
-  ctx.lineTo(mx + mR - cr, my - mR);
-  ctx.arcTo(mx + mR, my - mR, mx + mR, my - mR + cr, cr);
-  ctx.lineTo(mx + mR, my + mR - cr);
-  ctx.arcTo(mx + mR, my + mR, mx + mR - cr, my + mR, cr);
-  ctx.lineTo(mx - mR + cr, my + mR);
-  ctx.arcTo(mx - mR, my + mR, mx - mR, my + mR - cr, cr);
-  ctx.lineTo(mx - mR, my - mR + cr);
-  ctx.arcTo(mx - mR, my - mR, mx - mR + cr, my - mR, cr);
+  ctx.moveTo(-mRb + cr, -mRb);
+  ctx.lineTo( mRb - cr, -mRb);
+  ctx.arcTo(  mRb, -mRb,  mRb, -mRb + cr, cr);
+  ctx.lineTo( mRb,  mRb - cr);
+  ctx.arcTo(  mRb,  mRb,  mRb - cr, mRb, cr);
+  ctx.lineTo(-mRb + cr, mRb);
+  ctx.arcTo(-mRb,  mRb, -mRb,  mRb - cr, cr);
+  ctx.lineTo(-mRb, -mRb + cr);
+  ctx.arcTo(-mRb, -mRb, -mRb + cr, -mRb, cr);
   ctx.closePath();
   ctx.fillStyle = `rgba(26,58,106,${mA * 0.82})`;
   ctx.fill();
+  ctx.restore();
 
-  // ── Sentiment layer ────────────────────────────────────
-  // Warm, diffuse circle. Offset lower-left.
-  // Small and faint when unregistered (Panama). Large when at peak.
-  const sR = 9 + a.s * 28;
-  const sA = 0.07 + a.s * 0.34;
-  // FIX: proportional offsets
-  const sx = x - W * 0.026;
-  const sy = y + H * 0.038;
+  // ── Sentiment layer ────────────────────────────────────────────────
+  const sRbase = 9 + a.s * 28;
+  const sA     = 0.07 + a.s * 0.36;
+  const sx     = x - W * 0.026;
+  const sy     = y + H * 0.038;
+  // Sentiment breathes on its own phase — slower, warmer feeling
+  const sBreath = 1 + Math.sin(t * 0.38 + phase + 3.0) * 0.09;
+  const sR      = sRbase * sBreath;
 
-  // Wide diffuse warmth
   const g3 = ctx.createRadialGradient(sx, sy, 0, sx, sy, sR * 3.8);
-  g3.addColorStop(0,    `rgba(139,58,26,${sA * 0.75})`);
-  g3.addColorStop(0.22, `rgba(139,58,26,${sA * 0.35})`);
-  g3.addColorStop(0.58, `rgba(139,58,26,${sA * 0.10})`);
+  g3.addColorStop(0,    `rgba(139,58,26,${sA * 0.80})`);
+  g3.addColorStop(0.22, `rgba(139,58,26,${sA * 0.38})`);
+  g3.addColorStop(0.58, `rgba(139,58,26,${sA * 0.12})`);
   g3.addColorStop(1,    `rgba(139,58,26,0)`);
   ctx.beginPath();
   ctx.arc(sx, sy, sR * 3.8, 0, Math.PI * 2);
   ctx.fillStyle = g3;
   ctx.fill();
 
-  // Core soft circle
   const g4 = ctx.createRadialGradient(sx, sy, 0, sx, sy, sR);
-  g4.addColorStop(0,   `rgba(139,58,26,${sA * 1.9})`);
+  g4.addColorStop(0,   `rgba(139,58,26,${sA * 2.0})`);
   g4.addColorStop(0.6, `rgba(139,58,26,${sA})`);
   g4.addColorStop(1,   `rgba(139,58,26,0.015)`);
   ctx.beginPath();
@@ -1062,79 +1149,79 @@ function drawNode(id) {
   ctx.fillStyle = g4;
   ctx.fill();
 
-  // Dashed uncertainty ring when sentiment is low-confidence (< 0.3)
   if (a.s < 0.32) {
     ctx.beginPath();
     ctx.arc(sx, sy, sR * 1.25, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(139,58,26,0.11)`;
+    ctx.strokeStyle = `rgba(139,58,26,0.13)`;
     ctx.setLineDash([2, 4]);
-    ctx.lineWidth = 0.6;
+    ctx.lineWidth = 0.7;
     ctx.stroke();
     ctx.setLineDash([]);
   }
 
-  // ── Gap line: flow centroid → sentiment centroid ───────
-  // Weight = magnitude. Dash speed = rate of change.
-  // Widening → faster animated dash (pre-attentive urgency signal)
-  // Closing  → slower dash (settling feeling)
+  // ── Gap line: flow centroid → sentiment centroid ───────────────────
   if (magnitude > 0.10) {
-    const gA   = clamp((magnitude - 0.10) / 0.45, 0, 1);
+    const gA   = clamp((magnitude - 0.10) / 0.40, 0, 1); // steeper ramp — visible sooner
     const { direction, rate } = getRate(id);
-    // Dash pattern: shorter dashes when widening (more urgent visual texture)
-    const dash  = psGap < 0
-      ? (direction === 1 ? [2, 3] : [4, 4])   // sentiment lagging: tighter when widening
-      : (direction === 1 ? [1, 4] : [2, 5]);   // sentiment leading
 
-    // Animated dash offset — speed encodes rate of change
-    const dashSpeed  = 0.4 + rate * 1.2;        // faster when widening fast
+    const dash = psGap < 0
+      ? (direction === 1 ? [2, 3] : [4, 4])
+      : (direction === 1 ? [1, 4] : [2, 5]);
+
+    // Faster dash — movement clearly visible
+    const dashSpeed  = 1.2 + rate * 2.4;
     const dashOffset = direction >= 0
-      ? -(t * dashSpeed * 8) % 12               // flowing toward sentiment
-      : (t * dashSpeed * 8) % 12;               // flowing away
+      ? -(t * dashSpeed * 6) % 14
+      : (t * dashSpeed * 6) % 14;
 
+    // Gap line itself — heavier and more opaque
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineTo(sx, sy);
-    ctx.strokeStyle = `rgba(122,26,26,${gA * 0.52})`;
+    ctx.strokeStyle = `rgba(122,26,26,${gA * 0.72})`; // was 0.52
     ctx.setLineDash(dash);
     ctx.lineDashOffset = dashOffset;
-    ctx.lineWidth = 0.9 + magnitude * 1.4;
+    ctx.lineWidth = 1.2 + magnitude * 1.8; // was 0.9 + magnitude * 1.4
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.lineDashOffset = 0;
 
-    // Pulse ring at midpoint when divergence is severe
-    if (magnitude > 0.32) {
-      const ph = (t * 0.75) % 1;
+    // Pulse rings — two staggered, faster, more visible
+    if (magnitude > 0.22) { // lower threshold — was 0.32
+      const pA = gA * 0.38; // was 0.22
       const midX = (x + sx) / 2;
       const midY = (y + sy) / 2;
+      // First ring
+      const ph1 = (t * 1.4) % 1; // was 0.75
       ctx.beginPath();
-      ctx.arc(midX, midY, ph * 22 * magnitude, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(122,26,26,${(1 - ph) * gA * 0.22})`;
-      ctx.lineWidth = 0.7;
+      ctx.arc(midX, midY, ph1 * 28 * magnitude, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(122,26,26,${(1 - ph1) * pA})`;
+      ctx.lineWidth = 0.9;
+      ctx.stroke();
+      // Second ring — offset by half phase
+      const ph2 = (t * 1.4 + 0.5) % 1;
+      ctx.beginPath();
+      ctx.arc(midX, midY, ph2 * 28 * magnitude, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(122,26,26,${(1 - ph2) * pA * 0.6})`;
+      ctx.lineWidth = 0.6;
       ctx.stroke();
     }
   }
 
-  // M-S connection line removed — visual noise, competed with primary gap signal
-
-  // ── Focus ring ─────────────────────────────────────────
-  // Solid ring — positive focus signal, not just dimming of others.
-  // Shares colour with the panel left border via gap-state colour.
+  // ── Focus ring ─────────────────────────────────────────────────────
   if (focusedNode === id) {
-    const fR = Math.max(physR * 2.4, mR * 2.2, sR * 3.8) + 10;
+    const fR = Math.max(physR * 2.4, mRb * 2.2, sR * 3.8) + 10;
     const stmt = gapStatement(id);
-    // Parse colour — handle CSS var references
     let ringColour = 'rgba(28,26,22,0.25)';
-    if (stmt.color === 'var(--diverge)')    ringColour = 'rgba(122,26,26,0.35)';
-    else if (stmt.color === 'var(--resonance)') ringColour = 'rgba(74,58,26,0.3)';
-    else if (stmt.color === 'var(--ink2)')  ringColour = 'rgba(90,87,80,0.25)';
+    if (stmt.color === 'var(--diverge)')     ringColour = 'rgba(122,26,26,0.38)';
+    else if (stmt.color === 'var(--resonance)') ringColour = 'rgba(74,58,26,0.32)';
+    else if (stmt.color === 'var(--ink2)')   ringColour = 'rgba(90,87,80,0.28)';
     ctx.beginPath();
     ctx.arc(x, y, fR, 0, Math.PI * 2);
     ctx.strokeStyle = ringColour;
     ctx.lineWidth = 1.5;
     ctx.setLineDash([]);
     ctx.stroke();
-    // Small solid dot at node centre — anchors the focus
     ctx.beginPath();
     ctx.arc(x, y, 3, 0, Math.PI * 2);
     ctx.fillStyle = ringColour;
@@ -1587,6 +1674,43 @@ function applyPanamaSeasonality(dt) {
   }
 }
 
+// ── 3. Event reassertion — disruptions that re-spike before resolving ─
+// Real conflicts don't monotonically decay — they flare, subside, flare.
+// When event is in mid-decay, there's a small chance of partial re-injection.
+// Probability scales with structural constraint: entrenched situations reassert more.
+function maybeReassertEvent(nodeId, dt) {
+  const f       = FLOW[nodeId];
+  const plateau = PLATEAU[nodeId];
+  if (f.event < 0.05 || f.event > plateau * 0.95) return; // only during active decay
+  const prob = f.constraint * 0.00008 * dt * 60;
+  if (Math.random() < prob) {
+    const spike = 0.04 + Math.random() * 0.08;
+    f.event = Math.min(f.event + spike, plateau * 1.1);
+  }
+}
+
+// ── 5. Cross-node tension propagation — uneven, not constant ──────
+// Physical disruption propagates as sentiment and market anxiety, not as flow.
+// Flow is geographically constrained. Fear isn't.
+function propagateTension(dt) {
+  // Hormuz → Suez sentiment: high Hormuz event occasionally spikes Suez anxiety
+  if (FLOW.hormuz.event > 0.4) {
+    const prob = FLOW.hormuz.event * 0.00012 * dt * 60;
+    if (Math.random() < prob) {
+      const pulse = 0.03 + Math.random() * 0.05;
+      STATE.suez.sentiment = clamp(STATE.suez.sentiment + pulse, 0, 1);
+    }
+  }
+  // Suez → Panama market: sustained Suez constraint ripples as freight contagion
+  if (FLOW.suez.constraint > 0.25) {
+    const prob = FLOW.suez.constraint * 0.00006 * dt * 60;
+    if (Math.random() < prob) {
+      const pulse = 0.02 + Math.random() * 0.03;
+      STATE.panama.market = clamp(STATE.panama.market + pulse, 0, 1);
+    }
+  }
+}
+
 // ── Flow model tick ────────────────────────────────────────
 let lastFlowTick = 0;
 
@@ -1599,6 +1723,7 @@ function updateFlowModel(now) {
   // Event-dominated. Plateau logic holds closure.
   // Constraint hardens while event is sustained above plateau.
   decayEvent('hormuz', dt);
+  maybeReassertEvent('hormuz', dt); // 3. re-spike during active decay
   updateConstraint('hormuz', dt);
   const hormuzTarget = clamp(
     computeFlow('hormuz') + FLOW.hormuz.recovery * dt * 60,
@@ -1621,6 +1746,7 @@ function updateFlowModel(now) {
   // is a small positive: ~5% of the Hormuz closure restores to Suez.
   // This is capped and small — Suez's constraint is primarily its own.
   decayEvent('suez', dt);
+  maybeReassertEvent('suez', dt);
   updateConstraint('suez', dt);
   const hormuzCoupling = (1 - STATE.hormuz.flow) * 0.05; // small positive coupling
   const suezBase   = computeFlow('suez') + hormuzCoupling; // hormuz closure slightly lifts suez
@@ -1640,6 +1766,7 @@ function updateFlowModel(now) {
   // directly to constraint (structural, not transient).
   // Constraint evolves slowly — drought ratchet + seasonal drift.
   decayEvent('panama', dt);
+  maybeReassertEvent('panama', dt);
   updateConstraint('panama', dt);
   applyPanamaSeasonality(dt);
   const panamaTarget = clamp(
@@ -1665,6 +1792,9 @@ function updateFlowModel(now) {
   const p = STATE.panama;
   p.market    = clamp(lerp(p.market,    0.36, 0.003), 0.24, 0.52);
   p.sentiment = clamp(lerp(p.sentiment, 0.18, 0.002), 0.09, 0.30);
+
+  // 5. Cross-node tension propagation — probabilistic, not continuous
+  propagateTension(dt);
 }
 
 // ═══════════════════════════════════════════════════════════
