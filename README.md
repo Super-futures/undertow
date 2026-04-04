@@ -1,60 +1,120 @@
 # Undertow
 
-Undertow tracks three registers simultaneously at the world's major 
-shipping chokepoints — Hormuz, Suez, Panama — and surfaces the 
-relationship between them.
+Undertow is a live system that tracks the relationship between physical reality, market signal, and collective awareness across global shipping chokepoints.
 
-**Flow** — what is physically moving. Vessels, oil, grain.  
-**Market** — what price signals say. Futures, freight rates, 
-war-risk insurance.  
-**Felt** — what people collectively register. News volume, 
-narrative spread.
+It currently focuses on three locations:
+– Strait of Hormuz  
+– Suez Canal  
+– Panama Canal  
 
-The primary signal is the gap between physical reality and collective 
-felt experience. When that gap is significant, the system shows its 
-configuration — whether physical reality is running ahead of collective 
-awareness or behind it, and whether the gap is widening or closing — 
-alongside the channel through which it is most likely to become visible 
-in daily life.
+At each node, three registers are observed:
 
-## What it shows
+**Flow** — what is physically moving (oil, vessels, goods)  
+**Market** — what price signals anticipate (futures, freight, risk)  
+**Felt** — what people collectively register (news volume, narrative spread)  
 
-At any given moment, the three registers at each chokepoint may be 
-aligned, diverging, or moving in opposite directions. The system encodes 
-both the magnitude of that divergence and its rate of change — a small 
-gap widening fast is an earlier signal than a large gap that has been 
-stable for months.
+The system’s primary signal is not any one of these, but the **gap between physical flow and collective awareness**.
 
-Ghost traces show where each register was in recent intervals, making 
-trajectory legible without charts. The gap line between physical and 
-felt experience weights and animates in proportion to divergence speed.
+---
 
-## Current state
+## How to read it
 
-Hormuz is near-total closure following the 2026 US-Israel strikes on 
-Iran. Physical flow is at approximately 6% of normal. Market signal is 
-extreme. Collective sentiment is rising but still lagging the physical 
-reality. The gap is wide and widening.
+Each node displays Flow, Market, and Felt simultaneously.
 
-Suez is elevated — receiving rerouting pressure from Hormuz and residual 
-Houthi risk on the Red Sea approach. Panama carries ongoing 
-drought-related draught restrictions with very low public awareness.
+The key relationship is between **Flow (physical reality)** and **Felt (public awareness)**:
 
-## Signal layer
+– When reality changes before awareness, the system shows a widening gap  
+– When awareness catches up, the gap closes  
 
-When a gap is significant, the system surfaces a two-line entry:
+The wider and faster the gap, the more significant the condition.
 
-- **Line 1** — configuration: what kind of gap this is and whether it 
-is widening or closing
-- **Line 2** — transmission: where this would become visible in 
-everyday life — fuel prices, delivery times, food costs
+The system does not forecast. It surfaces **misalignment**.
 
-No historical citations. No forecasts. The signal describes current 
-structure and its likely transmission into lived experience.
+---
 
-## Technical
+## Flow model
 
-Single HTML file. Canvas 2D rendering. Live data via Yahoo Finance 
-(Brent crude) and GDELT (news sentiment), polled every 10 minutes. 
-Falls back to a calibrated model when data is unavailable. No server 
-required — deploy anywhere that serves static files.
+Flow is not directly measured in real time. It is a constrained, event-informed model calibrated against real-world throughput.
+
+Each node is defined by:
+
+– **Constraint**: structural limits (e.g. drought, capacity reduction)  
+– **Event**: acute disruption (e.g. conflict, closure)  
+– **Recovery**: gradual return toward baseline  
+
+Flow is derived as:
+
+Flow = 1 − constraint − event (bounded by floor and ceiling)
+
+External data does not overwrite Flow directly. It modifies underlying components:
+
+– Canal water levels adjust constraint (Panama)  
+– Event signals reinforce disruption (Hormuz, Suez)  
+– Observed vessel density can calibrate event intensity when available  
+
+This ensures the model remains **causal and interpretable**, even under partial data.
+
+---
+
+## Calibration
+
+Flow values correspond to approximate real-world ranges:
+
+– Hormuz: ~20–21 million barrels/day (normal conditions)  
+– Suez: ~50–70 vessels/day (normal conditions)  
+– Panama: ~30–36 transits/day (normal conditions)  
+
+The system is designed to be **directionally accurate and behaviourally credible**, rather than precisely measured.
+
+---
+
+## What the system does
+
+Undertow makes visible:
+
+– where physical systems are under stress  
+– how quickly markets respond  
+– how slowly awareness catches up  
+
+It highlights conditions where:
+
+> something significant is happening in the world that most people have not yet registered.
+
+---
+
+## What it does not do
+
+– It does not predict future outcomes  
+– It does not provide exact measurements  
+– It does not resolve signals into a single index  
+
+The system preserves disagreement between registers rather than collapsing them.
+
+---
+
+## Status
+
+This version establishes:
+
+– a calibrated, causal Flow model  
+– a stable three-register system  
+– a readable signal based on divergence, direction, and duration  
+
+Further improvements will focus on:
+
+– higher-fidelity data inputs (AIS, Google Trends)  
+– validation of interpretability across users  
+
+---
+
+## Lineage
+
+Undertow extends earlier work on *Animal Spirits*, which mapped collective affect and economic behaviour.
+
+Where Animal Spirits focused on sentiment and markets, Undertow connects those signals back to the **material flows they depend on**.
+
+---
+
+## Concept
+
+The name refers to the force beneath the visible surface — the currents that determine where things are actually heading, regardless of what appears above.
