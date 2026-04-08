@@ -1097,19 +1097,35 @@ function tick(ts) {
 }
 
 // ── Render ─────────────────────────────────────────────────
+// Gap-driven alpha: calm nodes (small gap) recede, disrupted nodes emerge.
+// CALM_THRESHOLD: below this gap magnitude, node is in full calm state —
+// motion suppressed, alpha floored at CALM_ALPHA.
+const CALM_THRESHOLD = 0.08;
+const CALM_ALPHA     = 0.30;
+
+function getNodeAlpha(id) {
+  if (focusedNode) return focusedNode === id ? 1.0 : 0.28;
+  const { magnitude } = getGap(id);
+  // Below calm threshold: hard floor at CALM_ALPHA
+  if (magnitude < CALM_THRESHOLD) return CALM_ALPHA;
+  // Above threshold: scale from CALM_ALPHA+0.1 to 1.0 over the range 0.08→0.55
+  return clamp(CALM_ALPHA + 0.10 + (magnitude - CALM_THRESHOLD) / 0.47 * (1.0 - CALM_ALPHA - 0.10), 0, 1.0);
+}
+
+function isCalm(id) {
+  return !focusedNode && getGap(id).magnitude < CALM_THRESHOLD;
+}
+
 function render() {
   ctx.clearRect(0, 0, W, H);
   drawRoutes();
-  // Draw ghost traces first — underneath current state
   for (const id of Object.keys(NODES)) {
-    const dim = focusedNode && focusedNode !== id;
-    ctx.globalAlpha = dim ? 0.12 : 1.0;
+    ctx.globalAlpha = focusedNode ? (focusedNode === id ? 1.0 : 0.12) : getNodeAlpha(id) * 0.6;
     drawGhosts(id);
     ctx.globalAlpha = 1.0;
   }
   for (const id of Object.keys(NODES)) {
-    const dim = focusedNode && focusedNode !== id;
-    ctx.globalAlpha = dim ? 0.28 : 1.0;
+    ctx.globalAlpha = getNodeAlpha(id);
     drawNode(id);
     ctx.globalAlpha = 1.0;
   }
@@ -1203,16 +1219,16 @@ function drawNode(id) {
   const phase = { hormuz: 0, suez: 2.1, panama: 4.4 }[id];
 
   // ── Disruption level drives visual energy ─────────────────────────
-  // d=0: calm, quiet, minimal motion
-  // d=1: severe divergence, more active, less perfect
-  const d = getDisruptionLevel(id);
+  const d    = getDisruptionLevel(id);
+  const calm = isCalm(id);
 
   // ── Flow layer (physical) ──────────────────────────────────────────
   const confidence = getDataConfidence(id);
   const haloMult   = 3.2 - confidence * 0.8;
 
-  // Breathing amplitude: quiet when calm, more visible under disruption
-  const breatheAmp = 0.025 + d * 0.065;
+  // Calm state: breathing completely suppressed — node is still.
+  // Disrupted: breathing amplitude scales with gap.
+  const breatheAmp = calm ? 0 : (0.025 + d * 0.065);
   const breathe    = 1 + Math.sin(t * 0.55 + phase) * breatheAmp;
   const physR      = (7 + a.p * 26) * breathe;
   const physA      = 0.09 + a.p * 0.40 + confidence * 0.15;
@@ -1272,11 +1288,11 @@ function drawNode(id) {
   const mx     = x + W * 0.022;
   const my     = y - H * 0.035;
   // Breathing and rotation scale with disruption: calm markets rotate slowly,
-  // stressed markets show more motion
-  const mBreathAmp = 0.025 + d * 0.045;
+  // stressed markets show more motion. Calm state: fully still.
+  const mBreathAmp = calm ? 0 : (0.025 + d * 0.045);
   const mBreath    = 1 + Math.sin(t * 0.72 + phase + 1.2) * mBreathAmp;
   const mRb        = mR * mBreath;
-  const mRotRate   = 0.10 + d * 0.14; // slow when calm, faster under stress
+  const mRotRate   = calm ? 0 : (0.10 + d * 0.14);
   const mRotate    = t * mRotRate + phase;
 
   const g2 = ctx.createRadialGradient(mx, my, 0, mx, my, mRb * 2.4);
@@ -1313,8 +1329,8 @@ function drawNode(id) {
   const sA     = 0.07 + a.s * 0.36;
   const sx     = x - W * 0.026;
   const sy     = y + H * 0.038;
-  // Sentiment breathes more under disruption — glow becomes less contained
-  const sBreathAmp = 0.045 + d * 0.075;
+  // Sentiment breathes more under disruption. Calm state: fully still.
+  const sBreathAmp = calm ? 0 : (0.045 + d * 0.075);
   const sBreath    = 1 + Math.sin(t * 0.38 + phase + 3.0) * sBreathAmp;
   const sR         = sRbase * sBreath;
   // Diffusion radius also expands under disruption — sentiment becomes less bounded
@@ -1364,14 +1380,15 @@ function drawNode(id) {
       ? -(t * dashSpeed * 6) % 14
       : (t * dashSpeed * 6) % 14;
 
-    // Gap line itself — heavier and more opaque
+    // Gap line — opacity and weight uncapped: magnitude drives both fully.
+    // The gap line is the primary signal; it should dominate at high magnitude.
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineTo(sx, sy);
-    ctx.strokeStyle = `rgba(122,26,26,${gA * 0.72})`; // was 0.52
+    ctx.strokeStyle = `rgba(122,26,26,${gA * 0.90})`;
     ctx.setLineDash(dash);
     ctx.lineDashOffset = dashOffset;
-    ctx.lineWidth = 1.2 + magnitude * 1.8; // was 0.9 + magnitude * 1.4
+    ctx.lineWidth = 1.4 + magnitude * 2.8;
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.lineDashOffset = 0;
@@ -1426,7 +1443,14 @@ function drawRoutes() {
   const hp = ANIM.hormuz.p;
   const sp = ANIM.suez.p;
 
-  // FIX: control points as fractions of W/H, not fixed px
+  // Route emphasis from the highest-gap node only.
+  // Other routes recede — allows directional reading (source → propagation).
+  const hGap = getGap('hormuz').magnitude;
+  const sGap = getGap('suez').magnitude;
+  const maxGap = Math.max(hGap, sGap, getGap('panama').magnitude);
+  const hEmphasis = maxGap > 0.08 ? clamp(hGap / maxGap, 0.2, 1.0) : 0.3;
+  const sEmphasis = maxGap > 0.08 ? clamp(sGap / maxGap, 0.2, 1.0) : 0.3;
+
   // Hormuz → Red Sea / Suez route
   ctx.beginPath();
   ctx.moveTo(h.x - W * 0.022, h.y + H * 0.024);
@@ -1435,8 +1459,8 @@ function drawRoutes() {
     s.x + W * 0.082, s.y + H * 0.18,
     s.x + W * 0.005, s.y + H * 0.09
   );
-  ctx.strokeStyle = `rgba(42,74,58,${0.05 + hp * 0.11})`;
-  ctx.lineWidth = 0.8 + hp * 2.2;
+  ctx.strokeStyle = `rgba(42,74,58,${(0.04 + hp * 0.10) * hEmphasis})`;
+  ctx.lineWidth = (0.8 + hp * 2.2) * hEmphasis;
   ctx.stroke();
 
   // Suez → Atlantic → Panama route
@@ -1447,8 +1471,8 @@ function drawRoutes() {
     p.x + W * 0.064, p.y - H * 0.092,
     p.x + W * 0.010, p.y - H * 0.018
   );
-  ctx.strokeStyle = `rgba(42,74,58,${0.04 + sp * 0.08})`;
-  ctx.lineWidth = 0.7 + sp * 1.6;
+  ctx.strokeStyle = `rgba(42,74,58,${(0.03 + sp * 0.07) * sEmphasis})`;
+  ctx.lineWidth = (0.7 + sp * 1.6) * sEmphasis;
   ctx.stroke();
 }
 
