@@ -16,6 +16,8 @@ Ghost traces show where each register was over the past three 90-second interval
 
 Each node breathes independently: the three visual layers (flow circle, market rect, sentiment glow) oscillate at their own rates and phases, so the field is never fully at rest.
 
+The three registers operate on distinct temporal logics. Flow updates continuously — physical reality doesn't pause. Market is stepwise: it holds completely until a meaningful revision occurs, then moves, then holds again. Felt runs on its own slower clock, accumulating pressure between updates and releasing in bursts. Calm states are genuinely still; disrupted states show more energy. Panama, structurally stable, barely moves. Hormuz, in acute crisis, is always close to the next shift.
+
 ## Current state (April 2026)
 
 **Hormuz** is near-total closure following the 2026 US-Israel strikes on Iran. Physical flow is approximately 6% of normal — around 1–2 million barrels per day moving via the IRGC toll route through Larak Island, compared to 20 million barrels per day in normal conditions. Market signal is extreme. Collective sentiment is rising but still lagging the physical reality significantly. The gap is wide.
@@ -57,25 +59,24 @@ Flow = clamp(1 − constraint − event, floor, ceiling)
 
 External data adjusts model components (constraint, event), not flow directly. Confidence in the model decays exponentially with time since last anchoring signal (48-hour halflife, floor 0.2), encoded in the visual weight of the physical flow layer.
 
-**Tension dynamics:** values resist settling — they hold near a position, then shift more abruptly than smooth interpolation would suggest. Sentiment accumulates pressure before snapping. Market and sentiment carry biased noise that self-reinforces current trends. Cross-node tension propagates probabilistically: Hormuz events occasionally spike Suez sentiment; sustained Suez constraint ripples into Panama market.
+**Temporal behaviour:** the three registers operate at different speeds and with different resistance to change. Flow is continuous and physically resistant — near its floor, it requires sustained recovery signal before moving upward. Market is revision-gated: small fluctuations are ignored, only meaningful deltas propagate to the display. Felt accumulates pressure between clock ticks and releases in proportion to that pressure; the clock interval varies by node and disruption level, meaning Panama's sentiment may hold for many seconds between updates while Hormuz shifts every few seconds. Cross-node tension propagates probabilistically: Hormuz events occasionally spike Suez sentiment; sustained Suez constraint ripples into Panama market.
 
 ## Data sources
 
-**Live (no key required):**
-- Yahoo Finance — Brent Crude (BZ=F) → Hormuz and Suez market signal
-- Yahoo Finance — Baltic Dry Index (^BDI) → Suez and Panama market signal
+**Via Animal Spirits API (server-side, no CORS):**
+- Brent Crude (BZ=F) → Hormuz and Suez market signal
+- Baltic Dry Index (^BDI) → Suez and Panama market signal
+
+**Browser-direct:**
 - GDELT 2.0 — news sentiment per chokepoint (120-minute window, keyword-filtered)
 - Panama Canal Authority — Gatun Lake water level CSV → Panama constraint anchoring
-
-**Keyed (add API key to activate):**
-- MarineTraffic — vessel density at chokepoint bounding boxes → flow anchoring (confidence 0.85)
-- Freightos FBX — container freight rates FBX13/FBX11 (Suez), FBX01 (Panama) → market signal
+- IMF PortWatch — AIS transit calls for Hormuz and Suez (weekly, via proxy)
 
 Data sources poll every 10 minutes. Active sources shown in the header data indicator. The system falls back to the calibrated model when live data is unavailable — model confidence is visible in the rendering (softer, wider halo when unanchored; crisper when freshly anchored).
 
 ## Technical
 
-Single HTML file. Canvas 2D rendering. No build step, no server required — deploy anywhere that serves static files.
+Single HTML file. Canvas 2D rendering. Market data proxied via the Animal Spirits API backend (Render). No build step — deploy anywhere that serves static files.
 
 ```
 https://super-futures.github.io/undertow/
@@ -85,6 +86,6 @@ Fonts: Libre Baskerville (serif) + DM Mono. Colour system: warm parchment ground
 
 ## Lineage
 
-Undertow is a project in the Animal Spirits lineage — which maps collective affect and economic behaviour across regions. The extension is the material substrate: the physical flows of oil, grain, and goods that sentiment and markets are ultimately entangled with.
+Undertow is a project in the [Animal Spirits](https://super-futures.github.io) lineage — which maps collective affect and economic behaviour across regions. The extension is the material substrate: the physical flows of oil, grain, and goods that sentiment and markets are ultimately entangled with.
 
 The name comes from what the system tracks — the force beneath the visible surface that determines where things are actually heading, regardless of what's visible above it.
