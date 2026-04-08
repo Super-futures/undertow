@@ -84,8 +84,7 @@ https://super-futures.github.io/undertow/
 
 Fonts: Libre Baskerville (serif) + DM Mono. Colour system: warm parchment ground, three semantic register colours (physical green, market blue, sentiment sienna), divergence red.
 
-## Lineage
 
-Undertow is a project in the [Animal Spirits](https://super-futures.github.io) lineage — which maps collective affect and economic behaviour across regions. The extension is the material substrate: the physical flows of oil, grain, and goods that sentiment and markets are ultimately entangled with.
+Undertow is a project in the [Animal Spirits](https://super-futures.github.io/animalspirits/) lineage — which maps collective affect and economic behaviour across regions. The extension is the material substrate: the physical flows of oil, grain, and goods that sentiment and markets are ultimately entangled with.
 
 The name comes from what the system tracks — the force beneath the visible surface that determines where things are actually heading, regardless of what's visible above it.
