@@ -596,10 +596,10 @@ html, body {
 
 <div id="footer">
   <div id="footer-note">
-    Three registers are tracked simultaneously at each chokepoint. <em>Flow</em> reflects actual transit volume and physical constraint (0 = closed, 100 = fully open). <em>Market</em> reflects price and shipping signals as a forward-looking proxy. <em>Felt</em> reflects collective public sentiment derived from news volume and narrative spread. The gap between Flow and Felt is the primary signal. When significant, the system shows its configuration and the channel through which it is most likely to become visible in daily life. Sources: Brent Crude · Baltic Dry Index · GDELT · Panama Canal Authority Gatun Lake level · MarineTraffic vessel density (keyed) · Freightos Baltic Index (keyed). Data indicator shows active live sources.
+    Three registers are tracked simultaneously at each chokepoint. <em>Flow</em> reflects actual transit volume and physical constraint (0 = closed, 100 = fully open). <em>Market</em> reflects price and shipping signals as a forward-looking proxy. <em>Felt</em> reflects collective public sentiment derived from news volume and narrative spread. The gap between Flow and Felt is the primary signal. When significant, the system shows its configuration and the channel through which it is most likely to become visible in daily life. Sources: Brent Crude · Baltic Dry Index · GDELT · Panama Canal Authority Gatun Lake level · IMF PortWatch AIS transit calls. Data indicator shows active live sources.
   </div>
   <div id="footer-meta">
-    Undertow v1.3 · flow model v1.3 · live data where available<br>
+    Undertow v1.3 · flow model v1.3 · data layer v1.4 · live data where available<br>
     A project in the Animal Spirits lineage
   </div>
 </div>
@@ -857,55 +857,233 @@ function updateNoise(id, dt) {
   for (const [reg, key] of Object.entries(regs)) {
     const bias = Math.sign(st[key] - a[reg]) * 0.06;
     n[reg] += (Math.random() - 0.48 + bias) * 0.003 * dt * 60;
-    n[reg] *= 0.92; // slow decay — persists ~10 frames
+    n[reg] *= 0.92;
     n[reg]  = clamp(n[reg], -0.025, 0.025);
   }
 }
 
-// ── 4. Sentiment pressure accumulator — holds then snaps ──────────
-// Collective sentiment doesn't ease continuously — it holds, then
-// shifts more decisively than smooth lerp would suggest.
+// Single-register noise update — called by gated noise system in tick
+function updateNoiseReg(id, reg, dt) {
+  const n   = NOISE[id];
+  const a   = ANIM[id];
+  const key = { p: 'flow', m: 'market', s: 'sentiment' }[reg];
+  const bias = Math.sign(STATE[id][key] - a[reg]) * 0.06;
+  n[reg] += (Math.random() - 0.48 + bias) * 0.003 * dt * 60;
+  n[reg] *= 0.92;
+  n[reg]  = clamp(n[reg], -0.025, 0.025);
+}
+
+// ── 4. Sentiment pressure accumulator ─────────────────────────────
+// State shared with updateSentiment (defined with tick loop below)
 const SENT_PRESSURE = { hormuz: 0, suez: 0, panama: 0 };
+
+// ── Per-node temporal character ───────────────────────────
+// Hormuz: reactive geopolitical system — responds fast
+// Suez:   mediated — market-sensitive but physically slower
+// Panama: structural/environmental — barely moves day-to-day
+const NODE_TEMPO = {
+  hormuz: { flow: 0.028, market: 0.052, sentiment: 0.038 },
+  suez:   { flow: 0.018, market: 0.038, sentiment: 0.024 },
+  panama: { flow: 0.007, market: 0.020, sentiment: 0.011 },
+};
+
+// ── Market surprise — fast initial response, then consolidation ───
+// Tracks delta between fetch cycles. Larger surprise → brief lurch,
+// then slower settling. Effect is subtle — market leads but doesn't jump.
+const MARKET_SURPRISE  = { hormuz: 0, suez: 0, panama: 0 };
+const _prevMarketState = { hormuz: null, suez: null, panama: null };
+
+function applyMarketSurprise(id, newTarget) {
+  const prev = _prevMarketState[id];
+  if (prev !== null) {
+    MARKET_SURPRISE[id] = Math.abs(newTarget - prev) * 0.5; // scale down — keep subtle
+  }
+  _prevMarketState[id] = newTarget;
+}
+
+// ── Sentiment accumulation — pressure builds, releases gradually ───
+// Replaces hard threshold snap with a softer accumulation model:
+// pressure builds until it exceeds a per-node hold level, then
+// releases at a rate proportional to accumulated pressure.
+// Cooldown prevents immediate re-accumulation after release.
+const SENT_HOLD     = { hormuz: 0.022, suez: 0.018, panama: 0.014 };
+const SENT_COOLDOWN = { hormuz: 0,     suez: 0,     panama: 0     };
 
 function updateSentiment(id) {
   const a      = ANIM[id];
   const target = STATE[id].sentiment;
   const delta  = target - a.s;
-  SENT_PRESSURE[id] += delta * 0.15;
-  SENT_PRESSURE[id] *= 0.88; // pressure decays slowly
-  if (Math.abs(SENT_PRESSURE[id]) > 0.018) {
-    a.s = clamp(a.s + SENT_PRESSURE[id] * 0.22, 0, 1);
-    SENT_PRESSURE[id] *= 0.65; // bleed off after snap
+
+  // Accumulate pressure toward target (scaled by tempo — slow nodes accumulate slower)
+  SENT_PRESSURE[id] += delta * NODE_TEMPO[id].sentiment * 4.0;
+  SENT_PRESSURE[id] *= 0.90; // slower decay — pressure persists longer
+
+  // Count down cooldown
+  if (SENT_COOLDOWN[id] > 0) {
+    SENT_COOLDOWN[id]--;
+    // During cooldown: tiny drift only — no pressure release
+    a.s = clamp(a.s + delta * 0.002, 0, 1);
+    return;
   }
-  // Tiny baseline drift — prevents complete stillness
-  a.s = clamp(a.s + delta * 0.004, 0, 1);
+
+  if (Math.abs(SENT_PRESSURE[id]) > SENT_HOLD[id]) {
+    // Release: proportional to pressure magnitude, not a fixed jump
+    const releaseRate = 0.18 + Math.abs(SENT_PRESSURE[id]) * 0.6;
+    a.s = clamp(a.s + SENT_PRESSURE[id] * releaseRate, 0, 1);
+    SENT_PRESSURE[id] *= 0.55;
+    // Cooldown frames: longer for slower nodes (Panama holds longer after a shift)
+    SENT_COOLDOWN[id] = id === 'panama' ? 70 : id === 'suez' ? 50 : 35;
+  }
+  // No baseline drift — sentiment is frozen between clock ticks.
+  // Only moves when pressure threshold is exceeded.
 }
+
+// ── Rare interruptions — occasional discontinuity ─────────────────
+// Prevents continuous interpolation from feeling like simulation.
+// Fires with low probability when disruption is high; rate is per-node.
+// Effect: a small abrupt shift in market or sentiment — not noise,
+// but a genuine step that resets the interpolation trajectory.
+const INTERRUPT_PROB = { hormuz: 0.0004, suez: 0.0002, panama: 0.00005 };
+
+function maybeInterrupt(id) {
+  const d = getDisruptionLevel(id);
+  if (d < 0.2) return; // only fires under meaningful divergence
+  if (Math.random() < INTERRUPT_PROB[id] * d) {
+    const a = ANIM[id];
+    // Small step in whichever register has the larger gap to its target
+    const mDelta = STATE[id].market    - a.m;
+    const sDelta = STATE[id].sentiment - a.s;
+    if (Math.abs(mDelta) > Math.abs(sDelta)) {
+      a.m = clamp(a.m + mDelta * 0.35, 0, 1); // partial step toward market target
+    } else {
+      a.s = clamp(a.s + sDelta * 0.30, 0, 1);
+    }
+  }
+}
+
+// ── Disruption level — drives calm vs active visual modes ─────────
+function getDisruptionLevel(id) {
+  const { magnitude } = getGap(id);
+  return clamp(magnitude / 0.5, 0, 1); // 0 = aligned/calm, 1 = severe divergence
+}
+
+// ── Independent signal clocks ─────────────────────────────
+// Flow:    continuous — physical, tracked every frame
+// Market:  stepwise — only updates when a meaningful revision occurs
+//          Between steps it holds completely. No drift.
+// Felt:    delayed + bursty — runs on its own slower clock,
+//          pressure-based, long holds between movements
+//
+// Market revision gate: only propagates to ANIM when STATE has
+// moved by more than MARKET_GATE from the last committed value.
+// This means small fluctuations in STATE.market are ignored entirely
+// until they accumulate into a real revision.
+const MARKET_COMMITTED = {             // last value actually applied to ANIM
+  hormuz: null, suez: null, panama: null
+};
+const MARKET_GATE = { hormuz: 0.018, suez: 0.022, panama: 0.030 };
+// Panama has the highest gate — its market barely responds to oil price
+
+// Felt runs on a separate slower clock — not rAF, but real-time intervals
+// per node. When the clock fires, sentiment is allowed to accumulate/release.
+// Between firings it is completely frozen (no drift, no baseline creep).
+const FELT_CLOCK_MS = { hormuz: 3200, suez: 4800, panama: 7500 };
+const _lastFeltTick  = { hormuz: 0,    suez: 0,    panama: 0    };
+
+// Noise holds: tracks frames since noise last fired per register.
+// Noise only runs when d > 0.15 AND enough frames have passed.
+// When calm, noise is completely off — not just scaled down.
+const NOISE_INTERVAL = { p: 8, m: 4, s: 6 }; // frames between noise updates
+const _noiseFrame    = {
+  hormuz: { p: 0, m: 0, s: 0 },
+  suez:   { p: 0, m: 0, s: 0 },
+  panama: { p: 0, m: 0, s: 0 },
+};
 
 function tick(ts) {
   requestAnimationFrame(tick);
-  t += 0.022; // lifted: drives visible motion at usable rates
+  t += 0.022;
   const now = ts || 0;
 
   updateFlowModel(now);
 
-  // 1. Resistant lerp — flow and market hold near target, then give way
-  // 2. Biased noise — market and sentiment flicker with motivated uncertainty
-  // 4. Sentiment pressure — holds, then snaps
   for (const id of Object.keys(NODES)) {
     const s  = STATE[id];
     const a  = ANIM[id];
-    const dt = 0.016; // nominal frame dt for noise scaling
-    // Flow: resistant, no noise (physical — doesn't flicker)
-    a.p = resistantLerp(a.p, s.flow,   0.028, 0.010);
-    // Market: resistant, moderate noise
-    a.m = resistantLerp(a.m, s.market, 0.048, 0.004);
-    // Sentiment: pressure-based snap (replaces lerp entirely)
-    updateSentiment(id);
-    // Apply noise — market noisier than flow, sentiment noisiest
-    updateNoise(id, dt);
-    a.p = clamp(a.p + NOISE[id].p * 0.6,  0, 1); // subtle on flow
-    a.m = clamp(a.m + NOISE[id].m * 1.4,  0, 1); // clear on market
-    a.s = clamp(a.s + NOISE[id].s * 1.8,  0, 1); // most on sentiment
+    const dt = 0.016;
+    const d  = getDisruptionLevel(id);
+
+    // ── 1. Flow: continuous, resistant near floor ──────────────────
+    // Flow is the only signal that tracks every frame.
+    // Physical reality doesn't pause — but it resists recovery strongly.
+    const nearFloor     = (a.p - FLOW[id].floor) < 0.08;
+    const flowThreshold = nearFloor ? 0.020 : 0.010;
+    a.p = resistantLerp(a.p, s.flow, NODE_TEMPO[id].flow, flowThreshold);
+
+    // ── 2. Market: stepwise / revision-gated ──────────────────────
+    // Market only updates ANIM when STATE has moved by more than MARKET_GATE
+    // from the last committed value. Small oscillations are ignored entirely.
+    // Once a revision fires, it applies quickly (surprise boost still applies).
+    // Between revisions: ANIM.m holds completely. No drift, no creep.
+    if (MARKET_COMMITTED[id] === null) {
+      MARKET_COMMITTED[id] = s.market; // initialise on first tick
+    }
+    const marketDelta = Math.abs(s.market - MARKET_COMMITTED[id]);
+    if (marketDelta > MARKET_GATE[id]) {
+      // Revision: commit and apply to ANIM
+      MARKET_COMMITTED[id] = s.market;
+      const mSurprise = MARKET_SURPRISE[id];
+      const mRate     = NODE_TEMPO[id].market + mSurprise * 0.3;
+      a.m = resistantLerp(a.m, s.market, mRate, 0.004);
+      MARKET_SURPRISE[id] *= 0.92;
+    }
+    // No else — when no revision, a.m simply doesn't change this frame
+
+    // ── 3. Felt: runs on its own clock, not rAF ────────────────────
+    // Between clock ticks, sentiment is frozen. The clock interval varies
+    // per node and is longer when calm (less to react to).
+    // Calm nodes run on a very long interval — they may not update for
+    // many seconds at a time, then shift, then hold again.
+    const feltInterval = FELT_CLOCK_MS[id] * (1 + (1 - d) * 1.2);
+    if (now - _lastFeltTick[id] >= feltInterval) {
+      _lastFeltTick[id] = now;
+      updateSentiment(id);
+    }
+    // Between ticks: a.s is frozen — no drift line here
+
+    // ── 4. Noise: gated by disruption and frame interval ──────────
+    // Noise is completely off when calm (d < 0.15).
+    // When active, each register fires on its own sub-interval —
+    // not every frame. This gives noise a stuttered, intermittent feel
+    // rather than smooth continuous variation.
+    if (d > 0.15) {
+      const nf = _noiseFrame[id];
+      nf.p++; nf.m++; nf.s++;
+      const noiseScale = (d - 0.15) / 0.85; // 0 at d=0.15, 1 at d=1.0
+      if (nf.p >= NOISE_INTERVAL.p) {
+        updateNoiseReg(id, 'p', dt);
+        a.p = clamp(a.p + NOISE[id].p * 0.4 * noiseScale, 0, 1);
+        nf.p = 0;
+      }
+      if (nf.m >= NOISE_INTERVAL.m) {
+        updateNoiseReg(id, 'm', dt);
+        a.m = clamp(a.m + NOISE[id].m * 1.0 * noiseScale, 0, 1);
+        nf.m = 0;
+      }
+      if (nf.s >= NOISE_INTERVAL.s) {
+        updateNoiseReg(id, 's', dt);
+        a.s = clamp(a.s + NOISE[id].s * 1.2 * noiseScale, 0, 1);
+        nf.s = 0;
+      }
+    } else {
+      // Calm: noise accumulators decay to zero but don't fire
+      NOISE[id].p *= 0.85;
+      NOISE[id].m *= 0.85;
+      NOISE[id].s *= 0.85;
+    }
+
+    // ── 5. Rare interruption (unchanged — only fires under disruption)
+    maybeInterrupt(id);
   }
 
   render();
@@ -1024,14 +1202,20 @@ function drawNode(id) {
   // ── Per-node phase offsets — prevents all nodes breathing in sync ──
   const phase = { hormuz: 0, suez: 2.1, panama: 4.4 }[id];
 
+  // ── Disruption level drives visual energy ─────────────────────────
+  // d=0: calm, quiet, minimal motion
+  // d=1: severe divergence, more active, less perfect
+  const d = getDisruptionLevel(id);
+
   // ── Flow layer (physical) ──────────────────────────────────────────
   const confidence = getDataConfidence(id);
   const haloMult   = 3.2 - confidence * 0.8;
 
-  // Breathing: slow sinusoid ±6% of radius, independent per node
-  const breathe   = 1 + Math.sin(t * 0.55 + phase) * 0.06;
-  const physR     = (7 + a.p * 26) * breathe;
-  const physA     = 0.09 + a.p * 0.40 + confidence * 0.15;
+  // Breathing amplitude: quiet when calm, more visible under disruption
+  const breatheAmp = 0.025 + d * 0.065;
+  const breathe    = 1 + Math.sin(t * 0.55 + phase) * breatheAmp;
+  const physR      = (7 + a.p * 26) * breathe;
+  const physA      = 0.09 + a.p * 0.40 + confidence * 0.15;
 
   const g1 = ctx.createRadialGradient(x, y, 0, x, y, physR * haloMult);
   g1.addColorStop(0,   `rgba(42,74,58,${physA * 0.65})`);
@@ -1087,10 +1271,13 @@ function drawNode(id) {
   const mA     = 0.18 + a.m * 0.55;
   const mx     = x + W * 0.022;
   const my     = y - H * 0.035;
-  // Subtle oscillation: slight scale pulse keyed to market value
-  const mBreath = 1 + Math.sin(t * 0.72 + phase + 1.2) * 0.045;
-  const mRb     = mR * mBreath;
-  const mRotate = t * 0.18 + phase; // slow rotation
+  // Breathing and rotation scale with disruption: calm markets rotate slowly,
+  // stressed markets show more motion
+  const mBreathAmp = 0.025 + d * 0.045;
+  const mBreath    = 1 + Math.sin(t * 0.72 + phase + 1.2) * mBreathAmp;
+  const mRb        = mR * mBreath;
+  const mRotRate   = 0.10 + d * 0.14; // slow when calm, faster under stress
+  const mRotate    = t * mRotRate + phase;
 
   const g2 = ctx.createRadialGradient(mx, my, 0, mx, my, mRb * 2.4);
   g2.addColorStop(0,   `rgba(26,58,106,${mA * 0.55})`);
@@ -1126,17 +1313,20 @@ function drawNode(id) {
   const sA     = 0.07 + a.s * 0.36;
   const sx     = x - W * 0.026;
   const sy     = y + H * 0.038;
-  // Sentiment breathes on its own phase — slower, warmer feeling
-  const sBreath = 1 + Math.sin(t * 0.38 + phase + 3.0) * 0.09;
-  const sR      = sRbase * sBreath;
+  // Sentiment breathes more under disruption — glow becomes less contained
+  const sBreathAmp = 0.045 + d * 0.075;
+  const sBreath    = 1 + Math.sin(t * 0.38 + phase + 3.0) * sBreathAmp;
+  const sR         = sRbase * sBreath;
+  // Diffusion radius also expands under disruption — sentiment becomes less bounded
+  const sDiffuse   = 3.4 + d * 0.8;
 
-  const g3 = ctx.createRadialGradient(sx, sy, 0, sx, sy, sR * 3.8);
+  const g3 = ctx.createRadialGradient(sx, sy, 0, sx, sy, sR * sDiffuse);
   g3.addColorStop(0,    `rgba(139,58,26,${sA * 0.80})`);
   g3.addColorStop(0.22, `rgba(139,58,26,${sA * 0.38})`);
   g3.addColorStop(0.58, `rgba(139,58,26,${sA * 0.12})`);
   g3.addColorStop(1,    `rgba(139,58,26,0)`);
   ctx.beginPath();
-  ctx.arc(sx, sy, sR * 3.8, 0, Math.PI * 2);
+  ctx.arc(sx, sy, sR * sDiffuse, 0, Math.PI * 2);
   ctx.fillStyle = g3;
   ctx.fill();
 
@@ -1798,14 +1988,19 @@ function updateFlowModel(now) {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  DATA LAYER  v1.2
+//  DATA LAYER  v1.4
 //  Sources:
-//    LIVE:     Yahoo Finance — Brent Crude (BZ=F), Baltic Dry (^BDI)
-//    LIVE:     GDELT — news sentiment per chokepoint
-//    LIVE:     Panama Canal Authority — Gatun Lake water level CSV
-//    KEYED:    MarineTraffic — vessel density per strait (add key below)
-//    KEYED:    Freightos FBX — container freight rates (add key below)
+//    LIVE (via Animal Spirits API — server-side, no CORS):
+//              Brent Crude (BZ=F) · Baltic Dry Index (^BDI)
+//    LIVE (browser-direct):
+//              GDELT — news sentiment per chokepoint
+//              Panama Canal Authority — Gatun Lake water level CSV
+//              IMF PortWatch — AIS transit calls (weekly, via allorigins proxy)
+//    KEYED:    MarineTraffic — vessel density per strait
+//    KEYED:    Freightos FBX — container freight rates
 // ═══════════════════════════════════════════════════════════
+
+const UNDERTOW_API = 'https://animalspirits-api.onrender.com';
 
 // ── API keys — add yours here when available ───────────────
 const KEYS = {
@@ -1815,12 +2010,13 @@ const KEYS = {
 
 // ── Source status tracking ─────────────────────────────────
 const SOURCES = {
-  brent:          { live: false, label: 'Brent' },
-  bdi:            { live: false, label: 'BDI'   },
-  gdelt:          { live: false, label: 'GDELT' },
-  gatun:          { live: false, label: 'Gatun' },
-  marinetraffic:  { live: false, label: 'MT'    },
-  freightos:      { live: false, label: 'FBX'   },
+  brent:          { live: false, label: 'Brent'    },
+  bdi:            { live: false, label: 'BDI'      },
+  gdelt:          { live: false, label: 'GDELT'    },
+  gatun:          { live: false, label: 'Gatun'    },
+  portwatch:      { live: false, label: 'PortWatch'},
+  marinetraffic:  { live: false, label: 'MT'       },
+  freightos:      { live: false, label: 'FBX'      },
 };
 
 function updateSourceDisplay() {
@@ -1833,61 +2029,56 @@ function updateSourceDisplay() {
 const priceHist = [];
 const bdiHist   = [];
 
-// ── 1. Brent Crude — market signal (all nodes) ────────────
-async function fetchCrude() {
+// ── Wake-and-retry for Render cold starts ─────────────────
+// Render free tier spins down after inactivity.
+// First call may time out — retry once after a short pause.
+async function fetchWithRetry(url, timeout = 12000) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(timeout) });
+      if (res.ok) return await res.json();
+    } catch {}
+    if (attempt === 0) await new Promise(r => setTimeout(r, 8000)); // wait for wake
+  }
+  return null;
+}
+
+// ── 1 + 2. Brent Crude + BDI — via Animal Spirits backend ─
+// Yahoo Finance blocks browser requests (CORS). The Animal Spirits
+// Render API proxies these server-side. New endpoint: /api/undertow/market
+// Returns: { brent: { latest, norm, vol }, bdi: { latest, norm, trend } }
+async function fetchMarket() {
   try {
-    const url   = 'https://query1.finance.yahoo.com/v8/finance/chart/BZ%3DF?interval=5m&range=2h';
-    const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-    const res   = await fetch(proxy, { signal: AbortSignal.timeout(9000) });
-    const data  = await res.json();
-    const closes = data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close?.filter(Boolean);
-    if (!closes || closes.length < 3) return null;
-    closes.slice(-12).forEach(p => priceHist.push(p));
-    if (priceHist.length > 40) priceHist.splice(0, priceHist.length - 40);
-    const latest = closes[closes.length - 1];
-    // Normalise: $70 = 0.0, $140 = 1.0
-    const norm = clamp((latest - 70) / 70, 0, 1);
-    let vol = 0;
-    for (let i = 1; i < Math.min(closes.length, 12); i++) {
-      vol += Math.abs(closes[i] - closes[i-1]) / closes[i-1];
+    const data = await fetchWithRetry(`${UNDERTOW_API}/api/undertow/market`);
+    if (!data) {
+      SOURCES.brent.live = false;
+      SOURCES.bdi.live   = false;
+      return { crude: null, bdi: null };
     }
-    vol = clamp(vol / 11 / 0.014, 0, 1);
-    SOURCES.brent.live = true;
-    return { latest, norm, vol };
+    if (data.brent) {
+      SOURCES.brent.live = true;
+      // Maintain local price history for volatility display
+      if (data.brent.latest) priceHist.push(data.brent.latest);
+      if (priceHist.length > 40) priceHist.splice(0, priceHist.length - 40);
+    } else {
+      SOURCES.brent.live = false;
+    }
+    if (data.bdi) {
+      SOURCES.bdi.live = true;
+      if (data.bdi.latest) bdiHist.push(data.bdi.latest);
+      if (bdiHist.length > 20) bdiHist.splice(0, bdiHist.length - 20);
+    } else {
+      SOURCES.bdi.live = false;
+    }
+    return { crude: data.brent || null, bdi: data.bdi || null };
   } catch {
     SOURCES.brent.live = false;
-    return null;
+    SOURCES.bdi.live   = false;
+    return { crude: null, bdi: null };
   }
 }
 
-// ── 2. Baltic Dry Index — shipping demand proxy ────────────
-// BDI reflects global dry bulk demand. Low = slack demand/overcapacity.
-// High = strong demand, potential congestion signal.
-// Normalise: 400 = floor (very low), 4000 = ceiling (very high).
-async function fetchBDI() {
-  try {
-    const url   = 'https://query1.finance.yahoo.com/v8/finance/chart/%5EBDI?interval=1d&range=10d';
-    const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-    const res   = await fetch(proxy, { signal: AbortSignal.timeout(9000) });
-    const data  = await res.json();
-    const closes = data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close?.filter(Boolean);
-    if (!closes || closes.length < 2) return null;
-    closes.forEach(v => bdiHist.push(v));
-    if (bdiHist.length > 20) bdiHist.splice(0, bdiHist.length - 20);
-    const latest  = closes[closes.length - 1];
-    const norm    = clamp((latest - 400) / 3600, 0, 1);
-    // Rate of change — rising BDI = tightening market
-    const prev    = closes[Math.max(0, closes.length - 6)];
-    const trend   = (latest - prev) / prev; // positive = rising
-    SOURCES.bdi.live = true;
-    return { latest, norm, trend };
-  } catch {
-    SOURCES.bdi.live = false;
-    return null;
-  }
-}
-
-// ── 3. GDELT — news sentiment per chokepoint ──────────────
+// ── 3. GDELT — news sentiment per chokepoint (browser-direct)
 const SENT_KW = {
   hormuz: ['hormuz','iran','persian gulf','oil closure','tanker attack','strait closed','irgc'],
   suez:   ['suez canal','red sea shipping','houthi','cape of good hope','bab el-mandeb'],
@@ -1899,9 +2090,8 @@ async function fetchSentiment() {
   const scores = { hormuz: 0, suez: 0, panama: 0 };
   try {
     const q     = encodeURIComponent('hormuz OR suez OR "panama canal"');
-    const gdelt = `https://api.gdeltproject.org/api/v2/doc/doc?query=${q}&mode=artlist&maxrecords=40&format=json&timespan=120min`;
-    const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(gdelt)}`;
-    const res   = await fetch(proxy, { signal: AbortSignal.timeout(9000) });
+    const url   = `https://api.gdeltproject.org/api/v2/doc/doc?query=${q}&mode=artlist&maxrecords=40&format=json&timespan=120min`;
+    const res   = await fetch(url, { signal: AbortSignal.timeout(9000) });
     const data  = await res.json();
     for (const art of (data?.articles || [])) {
       const tx = ((art.title||'')+(art.seendescription||'')).toLowerCase();
@@ -1919,24 +2109,18 @@ async function fetchSentiment() {
   return scores;
 }
 
-// ── 4. Panama Canal — Gatun Lake water level ──────────────
-// Direct CSV from ACP public dashboard.
-// Normalise: 79ft (drought critical) = 0.0, 89ft (normal) = 1.0
-// This is the most direct physical constraint metric for Panama.
+// ── 4. Panama Canal — Gatun Lake water level (browser-direct)
+// Direct CSV from ACP public dashboard — no proxy needed.
 async function fetchGatun() {
   try {
-    const csvUrl = 'https://evtms-rpts.pancanal.com/eng/h2o/gatunWL.csv';
-    const proxy  = `https://api.allorigins.win/raw?url=${encodeURIComponent(csvUrl)}`;
-    const res    = await fetch(proxy, { signal: AbortSignal.timeout(9000) });
-    const text   = await res.text();
+    const res  = await fetch('https://evtms-rpts.pancanal.com/eng/h2o/gatunWL.csv',
+                             { signal: AbortSignal.timeout(9000) });
+    const text = await res.text();
     if (!text || text.length < 10) return null;
-    // CSV format: date, level (ft)
     const lines = text.trim().split('\n').filter(l => l.trim());
     const last  = lines[lines.length - 1];
-    const parts = last.split(',');
-    const level = parseFloat(parts[1]);
+    const level = parseFloat(last.split(',')[1]);
     if (isNaN(level)) return null;
-    // 79ft = drought critical (0.0), 89ft = full normal (1.0)
     const norm = clamp((level - 79) / 10, 0, 1);
     SOURCES.gatun.live = true;
     return { level, norm };
@@ -1946,7 +2130,44 @@ async function fetchGatun() {
   }
 }
 
-// ── 5. MarineTraffic — vessel density at straits ──────────
+// ── 5. IMF PortWatch — AIS transit calls (browser-direct via proxy)
+// PortWatch ArcGIS endpoint not reachable from Render backend network.
+// Using allorigins.win CORS proxy — acceptable for weekly-updating data.
+// Confidence: 0.70 — weekly AIS vessel counts, no key required.
+// Dataset UUIDs: Hormuz = chokepoint6, Suez = chokepoint1
+const PW_DATASETS = {
+  hormuz: 'cb5856222a5b4105adc6ee7e880a1730',
+  suez:   'c57c79bf612b4372b08a9c6ea9c97ef0',
+};
+const PW_NORMAL = { hormuz: 130, suez: 60 };
+
+async function fetchPortWatch() {
+  const results = {};
+  let anyLive = false;
+  for (const [nodeId, uuid] of Object.entries(PW_DATASETS)) {
+    try {
+      const endpoint = `https://portwatch.imf.org/datasets/${uuid}_0/query`
+        + `?where=1%3D1&outFields=date%2Cn_total%2Cn_tanker%2Ccapacity`
+        + `&orderByFields=date+DESC&resultRecordCount=7`
+        + `&returnGeometry=false&f=json`;
+      const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(endpoint)}`;
+      const res   = await fetch(proxy, { signal: AbortSignal.timeout(14000) });
+      const data  = await res.json();
+      const feats = data?.features;
+      if (!feats?.length) { results[nodeId] = null; continue; }
+      const avg  = feats.reduce((s, f) => s + (f.attributes?.n_total || 0), 0) / feats.length;
+      const norm = clamp(avg / PW_NORMAL[nodeId], 0, 1);
+      results[nodeId] = { avg_daily: round(avg, 1), norm };
+      anyLive = true;
+    } catch {
+      results[nodeId] = null;
+    }
+  }
+  SOURCES.portwatch.live = anyLive;
+  return anyLive ? results : null;
+}
+
+// ── 6. MarineTraffic — vessel density at straits ──────────
 // Chokepoint bounding boxes (lat/lon)
 const MT_BOXES = {
   hormuz: { latmin: 25.5, latmax: 27.5, lonmin: 55.5, lonmax: 59.5 },
@@ -2010,21 +2231,32 @@ async function fetchFreightos() {
 async function fetchAll() {
   setDind('FETCH', 'var(--resonance)');
 
-  const [crude, bdi, sent, gatun, mt, fbx] = await Promise.all([
-    fetchCrude(),
-    fetchBDI(),
+  // Market (Brent + BDI) comes via Animal Spirits backend — single call.
+  // GDELT, Gatun are browser-direct. PortWatch via backend. MT/FBX keyed.
+  const [market, sent, gatun, pw, mt, fbx] = await Promise.all([
+    fetchMarket(),
     fetchSentiment(),
     fetchGatun(),
+    fetchPortWatch(),
     fetchMarineTraffic(),
     fetchFreightos(),
   ]);
 
+  const crude = market?.crude || null;
+  const bdi   = market?.bdi   || null;
+
   // ── Apply Brent crude → market signal ───────────────────
   if (crude) {
     // Hormuz: fully oil-exposed. Suez: mixed. Panama: minimal oil dependency.
-    STATE.hormuz.market = clamp(lerp(STATE.hormuz.market, crude.norm * 1.04 + crude.vol * 0.08, 0.28), 0, 1);
-    STATE.suez.market   = clamp(lerp(STATE.suez.market,   crude.norm * 0.65 + crude.vol * 0.12, 0.22), 0, 1);
-    STATE.panama.market = clamp(lerp(STATE.panama.market, crude.norm * 0.35,                    0.14), 0, 1);
+    const hTarget = clamp(crude.norm * 1.04 + crude.vol * 0.08, 0, 1);
+    const sTarget = clamp(crude.norm * 0.65 + crude.vol * 0.12, 0, 1);
+    const pTarget = clamp(crude.norm * 0.35, 0, 1);
+    applyMarketSurprise('hormuz', hTarget);
+    applyMarketSurprise('suez',   sTarget);
+    applyMarketSurprise('panama', pTarget);
+    STATE.hormuz.market = clamp(lerp(STATE.hormuz.market, hTarget, 0.28), 0, 1);
+    STATE.suez.market   = clamp(lerp(STATE.suez.market,   sTarget, 0.22), 0, 1);
+    STATE.panama.market = clamp(lerp(STATE.panama.market, pTarget, 0.14), 0, 1);
   }
 
   // ── Apply BDI → supplement market signal (Suez, Panama) ─
@@ -2069,6 +2301,19 @@ async function fetchAll() {
     // norm=1 (89ft) → ~72% flow (ceiling); norm=0 (79ft) → ~42% flow (floor)
     const impliedFlow = FLOW.panama.floor + gatun.norm * (FLOW.panama.ceiling - FLOW.panama.floor);
     anchorFlow('panama', impliedFlow, 0.55);
+  }
+
+  // ── Apply IMF PortWatch transit calls → flow anchor ──────
+  // Weekly AIS-grounded vessel counts — highest-confidence physical
+  // flow signal currently available without a paid API key.
+  // Confidence: 0.70 (weekly, not real-time — decay handles staleness)
+  // Only anchors when transit count meaningfully disagrees with model.
+  if (pw) {
+    for (const [id, reading] of Object.entries(pw)) {
+      if (reading !== null) {
+        anchorFlow(id, reading.norm, 0.70);
+      }
+    }
   }
 
   // ── Apply MarineTraffic vessel density → flow anchor ─────
