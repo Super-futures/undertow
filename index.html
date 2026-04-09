@@ -615,6 +615,11 @@ html, body {
 //  A project in the Animal Spirits lineage
 // ═══════════════════════════════════════════════════════════
 
+// ── Mode switch ────────────────────────────────────────────
+// 'default' — instrument mode, legible, precise
+// 'art'     — reserved for future perceptual mode
+const MODE = 'default';
+
 // ── Node definitions ───────────────────────────────────────
 // SVG viewBox 960×440. Positions at actual chokepoint throats.
 const NODES = {
@@ -862,143 +867,40 @@ function updateNoise(id, dt) {
   }
 }
 
-// Single-register noise update — called by gated noise system in tick
-function updateNoiseReg(id, reg, dt) {
-  const n   = NOISE[id];
-  const a   = ANIM[id];
-  const key = { p: 'flow', m: 'market', s: 'sentiment' }[reg];
-  const bias = Math.sign(STATE[id][key] - a[reg]) * 0.06;
-  n[reg] += (Math.random() - 0.48 + bias) * 0.003 * dt * 60;
-  n[reg] *= 0.92;
-  n[reg]  = clamp(n[reg], -0.025, 0.025);
-}
+// (updateNoiseReg removed — tick loop uses updateNoise directly)
 
-// ── 4. Sentiment pressure accumulator ─────────────────────────────
-// State shared with updateSentiment (defined with tick loop below)
-const SENT_PRESSURE = { hormuz: 0, suez: 0, panama: 0 };
+// ── 4. Sentiment pressure accumulator (state only — simplified below)
+const SENT_PRESSURE = { hormuz: 0, suez: 0, panama: 0 }; // retained for compat, unused
 
 // ── Per-node temporal character ───────────────────────────
-// Hormuz: reactive geopolitical system — responds fast
-// Suez:   mediated — market-sensitive but physically slower
-// Panama: structural/environmental — barely moves day-to-day
+// Hormuz: reactive — responds fast across all registers
+// Suez:   mediated — market-sensitive, physically slower
+// Panama: structural — barely moves day-to-day
 const NODE_TEMPO = {
-  hormuz: { flow: 0.028, market: 0.052, sentiment: 0.038 },
-  suez:   { flow: 0.018, market: 0.038, sentiment: 0.024 },
-  panama: { flow: 0.007, market: 0.020, sentiment: 0.011 },
+  hormuz: { flow: 0.028, market: 0.052, sentiment: 0.016 },
+  suez:   { flow: 0.018, market: 0.038, sentiment: 0.010 },
+  panama: { flow: 0.007, market: 0.020, sentiment: 0.005 },
 };
 
 // ── Market surprise — fast initial response, then consolidation ───
-// Tracks delta between fetch cycles. Larger surprise → brief lurch,
-// then slower settling. Effect is subtle — market leads but doesn't jump.
+// Applied when live data arrives with a meaningful change.
+// Adds a brief rate boost so market leads rather than lags a data fetch.
 const MARKET_SURPRISE  = { hormuz: 0, suez: 0, panama: 0 };
 const _prevMarketState = { hormuz: null, suez: null, panama: null };
 
 function applyMarketSurprise(id, newTarget) {
   const prev = _prevMarketState[id];
   if (prev !== null) {
-    MARKET_SURPRISE[id] = Math.abs(newTarget - prev) * 0.5; // scale down — keep subtle
+    MARKET_SURPRISE[id] = Math.abs(newTarget - prev) * 0.5;
   }
   _prevMarketState[id] = newTarget;
-}
-
-// ── Sentiment accumulation — pressure builds, releases gradually ───
-// Replaces hard threshold snap with a softer accumulation model:
-// pressure builds until it exceeds a per-node hold level, then
-// releases at a rate proportional to accumulated pressure.
-// Cooldown prevents immediate re-accumulation after release.
-const SENT_HOLD     = { hormuz: 0.022, suez: 0.018, panama: 0.014 };
-const SENT_COOLDOWN = { hormuz: 0,     suez: 0,     panama: 0     };
-
-function updateSentiment(id) {
-  const a      = ANIM[id];
-  const target = STATE[id].sentiment;
-  const delta  = target - a.s;
-
-  // Accumulate pressure toward target (scaled by tempo — slow nodes accumulate slower)
-  SENT_PRESSURE[id] += delta * NODE_TEMPO[id].sentiment * 4.0;
-  SENT_PRESSURE[id] *= 0.90; // slower decay — pressure persists longer
-
-  // Count down cooldown
-  if (SENT_COOLDOWN[id] > 0) {
-    SENT_COOLDOWN[id]--;
-    // During cooldown: tiny drift only — no pressure release
-    a.s = clamp(a.s + delta * 0.002, 0, 1);
-    return;
-  }
-
-  if (Math.abs(SENT_PRESSURE[id]) > SENT_HOLD[id]) {
-    // Release: proportional to pressure magnitude, not a fixed jump
-    const releaseRate = 0.18 + Math.abs(SENT_PRESSURE[id]) * 0.6;
-    a.s = clamp(a.s + SENT_PRESSURE[id] * releaseRate, 0, 1);
-    SENT_PRESSURE[id] *= 0.55;
-    // Cooldown frames: longer for slower nodes (Panama holds longer after a shift)
-    SENT_COOLDOWN[id] = id === 'panama' ? 70 : id === 'suez' ? 50 : 35;
-  }
-  // No baseline drift — sentiment is frozen between clock ticks.
-  // Only moves when pressure threshold is exceeded.
-}
-
-// ── Rare interruptions — occasional discontinuity ─────────────────
-// Prevents continuous interpolation from feeling like simulation.
-// Fires with low probability when disruption is high; rate is per-node.
-// Effect: a small abrupt shift in market or sentiment — not noise,
-// but a genuine step that resets the interpolation trajectory.
-const INTERRUPT_PROB = { hormuz: 0.0004, suez: 0.0002, panama: 0.00005 };
-
-function maybeInterrupt(id) {
-  const d = getDisruptionLevel(id);
-  if (d < 0.2) return; // only fires under meaningful divergence
-  if (Math.random() < INTERRUPT_PROB[id] * d) {
-    const a = ANIM[id];
-    // Small step in whichever register has the larger gap to its target
-    const mDelta = STATE[id].market    - a.m;
-    const sDelta = STATE[id].sentiment - a.s;
-    if (Math.abs(mDelta) > Math.abs(sDelta)) {
-      a.m = clamp(a.m + mDelta * 0.35, 0, 1); // partial step toward market target
-    } else {
-      a.s = clamp(a.s + sDelta * 0.30, 0, 1);
-    }
-  }
 }
 
 // ── Disruption level — drives calm vs active visual modes ─────────
 function getDisruptionLevel(id) {
   const { magnitude } = getGap(id);
-  return clamp(magnitude / 0.5, 0, 1); // 0 = aligned/calm, 1 = severe divergence
+  return clamp(magnitude / 0.5, 0, 1);
 }
-
-// ── Independent signal clocks ─────────────────────────────
-// Flow:    continuous — physical, tracked every frame
-// Market:  stepwise — only updates when a meaningful revision occurs
-//          Between steps it holds completely. No drift.
-// Felt:    delayed + bursty — runs on its own slower clock,
-//          pressure-based, long holds between movements
-//
-// Market revision gate: only propagates to ANIM when STATE has
-// moved by more than MARKET_GATE from the last committed value.
-// This means small fluctuations in STATE.market are ignored entirely
-// until they accumulate into a real revision.
-const MARKET_COMMITTED = {             // last value actually applied to ANIM
-  hormuz: null, suez: null, panama: null
-};
-const MARKET_GATE = { hormuz: 0.018, suez: 0.022, panama: 0.030 };
-// Panama has the highest gate — its market barely responds to oil price
-
-// Felt runs on a separate slower clock — not rAF, but real-time intervals
-// per node. When the clock fires, sentiment is allowed to accumulate/release.
-// Between firings it is completely frozen (no drift, no baseline creep).
-const FELT_CLOCK_MS = { hormuz: 3200, suez: 4800, panama: 7500 };
-const _lastFeltTick  = { hormuz: 0,    suez: 0,    panama: 0    };
-
-// Noise holds: tracks frames since noise last fired per register.
-// Noise only runs when d > 0.15 AND enough frames have passed.
-// When calm, noise is completely off — not just scaled down.
-const NOISE_INTERVAL = { p: 8, m: 4, s: 6 }; // frames between noise updates
-const _noiseFrame    = {
-  hormuz: { p: 0, m: 0, s: 0 },
-  suez:   { p: 0, m: 0, s: 0 },
-  panama: { p: 0, m: 0, s: 0 },
-};
 
 function tick(ts) {
   requestAnimationFrame(tick);
@@ -1010,80 +912,42 @@ function tick(ts) {
   for (const id of Object.keys(NODES)) {
     const s  = STATE[id];
     const a  = ANIM[id];
-    const dt = 0.016;
     const d  = getDisruptionLevel(id);
 
-    // ── 1. Flow: continuous, resistant near floor ──────────────────
-    // Flow is the only signal that tracks every frame.
-    // Physical reality doesn't pause — but it resists recovery strongly.
+    // ── Flow: continuous, inertial ─────────────────────────────────
+    // Resistant near floor — closure holds, recovery is slow.
     const nearFloor     = (a.p - FLOW[id].floor) < 0.08;
     const flowThreshold = nearFloor ? 0.020 : 0.010;
     a.p = resistantLerp(a.p, s.flow, NODE_TEMPO[id].flow, flowThreshold);
 
-    // ── 2. Market: stepwise / revision-gated ──────────────────────
-    // Market only updates ANIM when STATE has moved by more than MARKET_GATE
-    // from the last committed value. Small oscillations are ignored entirely.
-    // Once a revision fires, it applies quickly (surprise boost still applies).
-    // Between revisions: ANIM.m holds completely. No drift, no creep.
-    if (MARKET_COMMITTED[id] === null) {
-      MARKET_COMMITTED[id] = s.market; // initialise on first tick
-    }
-    const marketDelta = Math.abs(s.market - MARKET_COMMITTED[id]);
-    if (marketDelta > MARKET_GATE[id]) {
-      // Revision: commit and apply to ANIM
-      MARKET_COMMITTED[id] = s.market;
-      const mSurprise = MARKET_SURPRISE[id];
-      const mRate     = NODE_TEMPO[id].market + mSurprise * 0.3;
-      a.m = resistantLerp(a.m, s.market, mRate, 0.004);
-      MARKET_SURPRISE[id] *= 0.92;
-    }
-    // No else — when no revision, a.m simply doesn't change this frame
+    // ── Market: slightly faster, brief boost on data arrival ───────
+    // Higher lerp rate than sentiment — market leads.
+    // Surprise boost decays over ~12 frames after a data fetch.
+    const mRate = NODE_TEMPO[id].market + MARKET_SURPRISE[id] * 0.3;
+    a.m = resistantLerp(a.m, s.market, mRate, 0.006);
+    MARKET_SURPRISE[id] *= 0.92;
 
-    // ── 3. Felt: runs on its own clock, not rAF ────────────────────
-    // Between clock ticks, sentiment is frozen. The clock interval varies
-    // per node and is longer when calm (less to react to).
-    // Calm nodes run on a very long interval — they may not update for
-    // many seconds at a time, then shift, then hold again.
-    const feltInterval = FELT_CLOCK_MS[id] * (1 + (1 - d) * 1.2);
-    if (now - _lastFeltTick[id] >= feltInterval) {
-      _lastFeltTick[id] = now;
-      updateSentiment(id);
-    }
-    // Between ticks: a.s is frozen — no drift line here
+    // ── Sentiment: slower, lagging ─────────────────────────────────
+    // Lower rate and higher threshold than market — visibly lags.
+    // This is what creates the legible gap between market and felt.
+    a.s = resistantLerp(a.s, s.sentiment, NODE_TEMPO[id].sentiment, 0.014);
 
-    // ── 4. Noise: gated by disruption and frame interval ──────────
-    // Noise is completely off when calm (d < 0.15).
-    // When active, each register fires on its own sub-interval —
-    // not every frame. This gives noise a stuttered, intermittent feel
-    // rather than smooth continuous variation.
-    if (d > 0.15) {
-      const nf = _noiseFrame[id];
-      nf.p++; nf.m++; nf.s++;
-      const noiseScale = (d - 0.15) / 0.85; // 0 at d=0.15, 1 at d=1.0
-      if (nf.p >= NOISE_INTERVAL.p) {
-        updateNoiseReg(id, 'p', dt);
-        a.p = clamp(a.p + NOISE[id].p * 0.4 * noiseScale, 0, 1);
-        nf.p = 0;
-      }
-      if (nf.m >= NOISE_INTERVAL.m) {
-        updateNoiseReg(id, 'm', dt);
-        a.m = clamp(a.m + NOISE[id].m * 1.0 * noiseScale, 0, 1);
-        nf.m = 0;
-      }
-      if (nf.s >= NOISE_INTERVAL.s) {
-        updateNoiseReg(id, 's', dt);
-        a.s = clamp(a.s + NOISE[id].s * 1.2 * noiseScale, 0, 1);
-        nf.s = 0;
-      }
+    // ── Noise: only under disruption, simple and legible ──────────
+    // Single updateNoise call per frame when d > 0.12.
+    // Calm nodes are genuinely still. Disrupted nodes show texture.
+    // Multipliers kept low — noise should be barely perceptible,
+    // just enough to prevent the system reading as a frozen screenshot.
+    if (d > 0.12) {
+      updateNoise(id, 0.016);
+      const ns = (d - 0.12) / 0.88; // 0→1 as d goes 0.12→1.0
+      a.p = clamp(a.p + NOISE[id].p * 0.3 * ns, 0, 1);
+      a.m = clamp(a.m + NOISE[id].m * 0.8 * ns, 0, 1);
+      a.s = clamp(a.s + NOISE[id].s * 1.0 * ns, 0, 1);
     } else {
-      // Calm: noise accumulators decay to zero but don't fire
-      NOISE[id].p *= 0.85;
-      NOISE[id].m *= 0.85;
-      NOISE[id].s *= 0.85;
+      NOISE[id].p *= 0.88;
+      NOISE[id].m *= 0.88;
+      NOISE[id].s *= 0.88;
     }
-
-    // ── 5. Rare interruption (unchanged — only fires under disruption)
-    maybeInterrupt(id);
   }
 
   render();
@@ -1231,7 +1095,7 @@ function drawNode(id) {
   const breatheAmp = calm ? 0 : (0.025 + d * 0.065);
   const breathe    = 1 + Math.sin(t * 0.55 + phase) * breatheAmp;
   const physR      = (7 + a.p * 26) * breathe;
-  const physA      = 0.09 + a.p * 0.40 + confidence * 0.15;
+  const physA = 0.09 + a.p * 0.40 + confidence * 0.15;
 
   const g1 = ctx.createRadialGradient(x, y, 0, x, y, physR * haloMult);
   g1.addColorStop(0,   `rgba(42,74,58,${physA * 0.65})`);
@@ -1367,7 +1231,7 @@ function drawNode(id) {
 
   // ── Gap line: flow centroid → sentiment centroid ───────────────────
   if (magnitude > 0.10) {
-    const gA   = clamp((magnitude - 0.10) / 0.40, 0, 1); // steeper ramp — visible sooner
+    const gA   = clamp((magnitude - 0.10) / 0.40, 0, 1);
     const { direction, rate } = getRate(id);
 
     const dash = psGap < 0
@@ -1583,7 +1447,6 @@ function setBar(id, reg, val, pct) {
   const fill  = document.getElementById(`rf-${id}-${reg}`);
   const label = document.getElementById(`rv-${id}-${reg}`);
   if (fill)  fill.style.width = pct + '%';
-  // Show as percentage with unit — clear to viewer what scale means
   if (label) label.textContent = pct + '%';
 }
 
