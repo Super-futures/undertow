@@ -16,7 +16,7 @@ Ghost traces show where each register was over the past three 90-second interval
 
 Each node breathes independently: the three visual layers (flow circle, market rect, sentiment glow) oscillate at their own rates and phases, so the field is never fully at rest.
 
-The three registers operate on distinct temporal logics. Flow updates continuously — physical reality doesn't pause. Market is stepwise: it holds completely until a meaningful revision occurs, then moves, then holds again. Felt runs on its own slower clock, accumulating pressure between updates and releasing in bursts. Calm states are genuinely still; disrupted states show more energy. Panama, structurally stable, barely moves. Hormuz, in acute crisis, is always close to the next shift.
+The three registers move at different speeds. Flow tracks continuously — physical reality doesn't pause. Market responds faster than sentiment, with a brief boost when new data arrives. Felt lags behind both, moving slowly toward its target with more resistance before it shifts. Calm nodes (small gap) are near-still; disrupted nodes show more texture and motion. Panama, structurally stable, barely moves across any register. Hormuz, in acute crisis, shows activity across all three.
 
 ## Current state (April 2026)
 
@@ -59,7 +59,7 @@ Flow = clamp(1 − constraint − event, floor, ceiling)
 
 External data adjusts model components (constraint, event), not flow directly. Confidence in the model decays exponentially with time since last anchoring signal (48-hour halflife, floor 0.2), encoded in the visual weight of the physical flow layer.
 
-**Temporal behaviour:** the three registers operate at different speeds and with different resistance to change. Flow is continuous and physically resistant — near its floor, it requires sustained recovery signal before moving upward. Market is revision-gated: small fluctuations are ignored, only meaningful deltas propagate to the display. Felt accumulates pressure between clock ticks and releases in proportion to that pressure; the clock interval varies by node and disruption level, meaning Panama's sentiment may hold for many seconds between updates while Hormuz shifts every few seconds. Cross-node tension propagates probabilistically: Hormuz events occasionally spike Suez sentiment; sustained Suez constraint ripples into Panama market.
+**Temporal behaviour:** the three registers move at different speeds using inertial interpolation. Flow is continuous and physically resistant — near its floor, recovery requires sustained signal before anything moves. Market tracks faster than sentiment, with a brief rate boost when live data arrives with a meaningful change. Felt moves slowest, with a higher resistance threshold — it lags market visibly, which is the legible gap between expectation and collective awareness. Per-node rates differ: Hormuz responds faster across all registers than Panama, which moves very slowly and only under sustained pressure. Calm nodes suppress motion and noise entirely. Cross-node tension propagates probabilistically: Hormuz events occasionally spike Suez sentiment; sustained Suez constraint ripples into Panama market.
 
 ## Data sources
 
@@ -84,7 +84,8 @@ https://super-futures.github.io/undertow/
 
 Fonts: Libre Baskerville (serif) + DM Mono. Colour system: warm parchment ground, three semantic register colours (physical green, market blue, sentiment sienna), divergence red.
 
+## Lineage
 
-Undertow is a project in the [Animal Spirits](https://super-futures.github.io/animalspirits/) lineage — which maps collective affect and economic behaviour across regions. The extension is the material substrate: the physical flows of oil, grain, and goods that sentiment and markets are ultimately entangled with.
+Undertow is a project in the [Animal Spirits](https://super-futures.github.io) lineage — which maps collective affect and economic behaviour across regions. The extension is the material substrate: the physical flows of oil, grain, and goods that sentiment and markets are ultimately entangled with.
 
 The name comes from what the system tracks — the force beneath the visible surface that determines where things are actually heading, regardless of what's visible above it.
